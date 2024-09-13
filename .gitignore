@@ -1,0 +1,47 @@
+# This file is used to filter out sensitive configuration files
+
+# SSH keys and configuration
+~/.ssh/*
+!~/.ssh/config # Uncomment this line if you want to track the ssh config
+~/.gnupg/*
+~/.pki/*
+~/.netrc
+~/.aws/credentials
+~/.azure/*
+~/.gcloud/*
+~/.npmrc
+~/.git-credentials
+~/.gitconfig.local # If you keep a separate local gitconfig file
+
+# Credential storage and database-related files
+~/.my.cnf
+~/.pgpass
+~/.docker/config.json
+
+# Private API keys
+.env
+.envrc
+*.env
+
+# Cache and log files
+~/.cache/*
+~/.local/share/Trash/*
+~/.npm/_logs/*
+*.log
+*.lock
+
+# Backup files (can be created by editors)
+*~
+.*.swp
+.*.swo
+*.bak
+
+# Vim temporary files
+.viminfo
+.vimrc_local # Local vimrc if you store private settings here
+
+# Miscellaneous
+.DS_Store
+~/.history
+~/.bash_history
+~/.zsh_history
