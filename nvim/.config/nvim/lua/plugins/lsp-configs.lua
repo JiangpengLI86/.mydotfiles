@@ -1,26 +1,23 @@
 return {
   {
     "williamboman/mason.nvim",
-    config = function()
-      require("mason").setup({
-        ensure_installed = {
-          "clang-format",
-        },
-      })
-    end,
+    opts = {
+      ensure_installed = {
+        "clang-format",
+        "black",
+      },
+    },
   },
   {
     "williamboman/mason-lspconfig",
-    config = function()
-      require("mason-lspconfig").setup({
-        ensure_installed = {
-          "bashls",
-          "texlab",
-          "lua_ls",
-          "clangd",
-        },
-      })
-    end,
+    opts = {
+      ensure_installed = {
+        "bashls",
+        "texlab",
+        "lua_ls",
+        "clangd",
+      },
+    },
   },
   {
     "neovim/nvim-lspconfig",
@@ -34,15 +31,19 @@ return {
       vim.keymap.set("n", "K", vim.lsp.buf.hover, {})
     end,
   },
-  -- {
-  --   "nvimtools/none-ls.nvim",
-  --   event = "VeryLazy",
-  --   opts = function()
-  --     local none_ls = require("none-ls")
-  --     local options = {
-  --       none_ls.builtins.formatting.clang_format,
-  --     }
-  --     return options
-  --   end,
-  -- },
+  {
+    "nvimtools/none-ls.nvim",
+    filetype = { "lua", "python", "cpp" },
+    opts = function(_, opts)
+      local nls = require("null-ls")
+      opts.root_dir = opts.root_dir
+        or require("null-ls.utils").root_pattern(".null-ls-root", ".neoconf.json", "Makefile", ".git")
+      opts.sources = vim.list_extend(opts.sources or {}, {
+        nls.builtins.formatting.stylua,
+        nls.builtins.formatting.shfmt,
+        nls.builtins.formatting.black,
+        nls.builtins.formatting.clang_format,
+      })
+    end,
+  },
 }
