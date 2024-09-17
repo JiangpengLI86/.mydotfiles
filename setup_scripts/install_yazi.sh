@@ -23,7 +23,7 @@ install_yazi() {
 	# Build yazi from source ================================================
 
 	# Get the yazi setup script
-	mkdir -p opt/yazi/
+	mkdir -p /opt/yazi/
 	curl -o /opt/yazi/ --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 	rustup update
 
