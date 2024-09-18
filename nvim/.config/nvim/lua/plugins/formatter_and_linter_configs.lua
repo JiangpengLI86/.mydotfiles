@@ -47,7 +47,7 @@ return {
         ensure_mason_tools_installed(tools)
 
         -- Null-ls setup
-        local nls = require("null-ls")
+        local null_ls = require("null-ls")
         local function setup_null_ls_sources(nls)
             return {
                 nls.builtins.formatting.stylua,
@@ -57,6 +57,12 @@ return {
                 nls.builtins.formatting.clang_format,
             }
         end
+
+        local capabilities = vim.lsp.protocol.make_client_capabilities()
+        capabilities.offsetEncoding = { "utf-16" }
+        require("lspconfig").clangd.setup({
+            capabilities = capabilities,
+        })
 
         -- opts.root_dir tells null-ls how to determine the root directory of a project, which is crucial for some tools like linters and formatters.
         -- root.patterns function searches for theses specific files (in order) in the current directory and its parents. As soon as one of theses files is found, the directory is considered the root of the project.
@@ -73,6 +79,6 @@ return {
                 "composer.json", -- PHP projects
                 "go.mod" -- Go projects
             )
-        opts.sources = vim.list_extend(opts.sources or {}, setup_null_ls_sources(nls))
+        opts.sources = vim.list_extend(opts.sources or {}, setup_null_ls_sources(null_ls))
     end,
 }

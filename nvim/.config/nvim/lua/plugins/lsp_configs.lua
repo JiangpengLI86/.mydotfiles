@@ -5,7 +5,7 @@ return {
             "williamboman/mason.nvim", -- Ensure Mason is installed
             "williamboman/mason-lspconfig", -- Ensure Mason LSP config is installed
         },
-        opt = function()
+        opts = function()
             require("mason-lspconfig").setup({
                 ensure_installed = {
                     "pyright", -- Python LSP
@@ -21,7 +21,10 @@ return {
             lspconfig.bashls.setup({})
             lspconfig.texlab.setup({})
             lspconfig.lua_ls.setup({})
-            lspconfig.clangd.setup({})
+
+            local capabilities = vim.lsp.protocol.make_client_capabilities()
+            capabilities.offsetEncoding = { "utf-16" }
+            lspconfig.clangd.setup({ capabilities = capabilities })
 
             vim.keymap.set("n", "K", vim.lsp.buf.hover, {})
         end,
