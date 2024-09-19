@@ -1,7 +1,6 @@
-source ./install_basic_packages.sh # For is_installed and install_package functions
+source ./setup_scripts/install_basic_packages.sh # For is_installed and install_package functions
 
-local yazi_shell_wrapper =
-"
+yazi_shell_wrapper=$(cat << 'EOF'
     function yy() {
         local tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
         yazi "$@" --cwd-file="$tmp"
@@ -10,7 +9,8 @@ local yazi_shell_wrapper =
         fi
         rm -f -- "$tmp"
     }
-    "
+EOF
+)
 
 # Install the terminal file manager yazi
 install_yazi() {
@@ -20,16 +20,34 @@ install_yazi() {
 
 	install_packages "${dependencies[@]}"
 
+	wait
+
 	# Build yazi from source ================================================
 
-	# Get the yazi setup script
-	mkdir -p /opt/yazi/
-	curl -o /opt/yazi/ --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-	rustup update
+	# Download the rust setup script
+	curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+	# -s: Tells sh to read from standard input (the script downloaded by curl).
+	# --: This is a separator that tells sh that what follows are arguments to be passed to the script being executed, not options for sh itself.
+	# -y: This is an option passed to rust setup script to accept all default options automatically.
+
+	wait
+
+	# Ensure that the `rustup` binary is available in the current shell
+	source $HOME/.cargo/env
+
+	rm -rf ~/yazi
+	$SUDO rm -rf /opt/yazi
 
 	# Clone the yazi repository and build it
-	git clone https://github.com/sxyazi/yazi.git /opt/yazi/
-	cargo build --release --locked --manifest-path /opt/yazi/Cargo.toml
+	git clone https://github.com/sxyazi/yazi.git ~/yazi
+
+	wait 
+
+	cargo build --release --locked --manifest-path ~/yazi/Cargo.toml
+
+	wait
+
+	$SUDO mv $HOME/yazi /opt/yazi
 
 	# Modify bashrc to include yazi
 	echo "export PATH=\$PATH:/opt/yazi/target/release" >>~/.bashrc

@@ -33,7 +33,9 @@ install_packages() {
 	# Install the packages that are not already installed
 	if [ "${#to_install[@]}" -gt 0 ]; then
 		echo -e "${BOLD}${YELLOW}Installing the following packages:${RESET} ${GREEN}${to_install[*]}${RESET}"
-		apt-get install -y "${to_install[@]}"
+		$SUDO apt-get install -y "${to_install[@]}"
+
+		echo -e "${BOLD}${GREEN}All packages installed successfully.${RESET}"
 	else
 		echo -e "${BOLD}${GREEN}All packages installed successfully.${RESET}"
 	fi

@@ -1,4 +1,4 @@
-source ./install_basic_packages.sh # For is_installed and install_packages functions
+source ./setup_scripts/install_basic_packages.sh # For is_installed and install_packages functions
 
 # Install the neovim text editor
 install_neovim() {
@@ -12,16 +12,18 @@ install_neovim() {
 	dependencies=("software-properties-common")
 	install_packages "${dependencies[@]}"
 
+	wait
+
 	# Add the PPA
-	apt-get-repository ppa:neovim-ppa/unstable
-	apt-get update
+	$SUDO add-apt-repository -y ppa:neovim-ppa/unstable
+	$SUDO apt-get update
 
 	# Install neovim =========================================================
 	echo -e "${BOLD}${YELLOW} Installing neovim text editor...${RESET}"
-	apt-get install neovim
+	$SUDO apt-get install -y neovim
 
 	# Configure whether copilot is used here ================================
-	local use_copilot = $1
+	local use_copilot=$1
 
 	if [ $use_copilot == true ]; then
 		echo -e "${BOLD}${YELLOW} Copilot plugin will be installed in Neovim (Only used this in a trusted environment!)${RESET}"
@@ -32,9 +34,14 @@ install_neovim() {
 		echo -e "${BOLD}${YELLOW} Installing nvm package manager and nodejs required by copilot plugin...${RESET}"
 
 		curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+
+		wait
+
 		source ~/.nvm/nvm.sh
 		source ~/.bashrc
 		nvm install node
+
+		wait
 
 		echo -e "${BOLD}${GREEN} nvm and nodejs installed successfully.${RESET}"
 
@@ -52,6 +59,12 @@ install_neovim() {
 		# Remove the file ./nvim/.config/nvim/lua/plugins/copilot.lua
 		rm -f ./nvim/.config/nvim/lua/plugins/copilot.lua
 	fi
+
+	# Installing dependencies of nvim plugin ================================
+
+	echo -e "${BOLD}${YELLOW} Installing dependencies of neovim plugin...${RESET}"
+	# Installation of nvm
+	curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
 
 	echo -e "${BOLD}${GREEN} Neovim installed successfully.${RESET}"
 }
