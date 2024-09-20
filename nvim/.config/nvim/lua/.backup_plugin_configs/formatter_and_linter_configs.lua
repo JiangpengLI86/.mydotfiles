@@ -23,6 +23,8 @@ local function ensure_mason_tools_installed(tools)
     end
 end
 
+local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
+
 return {
     "nvimtools/none-ls.nvim",
     dependencies = { "williamboman/mason.nvim" },
@@ -37,7 +39,6 @@ return {
 
         -- Ensure tools are installed via Mason
         -- Ensure Mason is installed
-        opts.ensure_installed = vim.list_extend(opts.ensure_installed or {}, tools) -- opts.ensure_installed or {}: "Use opts.ensure_installed if it exists, otherwise use an empty list"
         local status_ok, _ = pcall(require, "mason")
         if not status_ok then
             vim.notify("Mason is not installed", vim.log.levels.ERROR)
@@ -54,7 +55,9 @@ return {
                 nls.builtins.formatting.shfmt,
                 nls.builtins.formatting.black,
                 nls.builtins.diagnostics.mypy,
-                nls.builtins.formatting.clang_format,
+                nls.builtins.formatting.clang_format.with({
+                    extra_args = { "--style=file:~/.mydotfiles/nvim/.config/nvim/.clang-format" },
+                }),
             }
         end
 
@@ -80,5 +83,22 @@ return {
                 "go.mod" -- Go projects
             )
         opts.sources = vim.list_extend(opts.sources or {}, setup_null_ls_sources(null_ls))
+
+        opts.on_attach = function(client, bufnr)
+            if client.supports_method("textDocument/formatting") then
+                vim.api.nvim_clear_autocmds({
+                    group = augroup,
+                    buffer = bufnr,
+                })
+                vim.api.nvim_create_autocmd("BufWritePre", {
+                    group = augroup,
+                    buffer = bufnr,
+                    callback = function()
+                        vim.lsp.buf.format({ bufnr = bufnr })
+                    end,
+                })
+            end
+        end
+        return opts
     end,
 }

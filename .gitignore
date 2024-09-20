@@ -31,7 +31,7 @@
 *.lock
 
 # Backup files (can be created by editors)
-*~
+# *~
 .*.swp
 .*.swo
 *.bak

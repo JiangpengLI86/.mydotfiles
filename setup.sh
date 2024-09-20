@@ -6,7 +6,7 @@ set -e # Ensure script stops immediately if any command fails.
 
 # Default values for variables ================================
 USE_COPILOT=false
-BASIC_PACKAGES=("build-essential" "wget" "curl" "git" "neovim" "python3" "make" "stow" "fontconfig" "unzip")
+BASIC_PACKAGES=("build-essential" "wget" "curl" "git" "neovim" "python3" "python3-venv" "make" "stow" "fontconfig" "unzip")
 STOW_TARGETS=("tmux" "nvim" "yazi" "inputrc")
 
 # Determine if sudo is needed
