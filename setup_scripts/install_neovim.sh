@@ -37,6 +37,8 @@ install_neovim() {
 
 		wait
 
+		nvm install node
+
 		source ~/.nvm/nvm.sh
 		source ~/.bashrc
 		nvm install node
