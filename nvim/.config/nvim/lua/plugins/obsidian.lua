@@ -17,14 +17,4 @@ return {
 
         -- see below for full list of optional dependencies 👇
     },
-    opts = {
-        workspaces = {
-            {
-                name = "personal",
-                path = "/mnt/c/Users/jiangpeng li/OneDrive - Nanyang Technological University/Obsidian/mind_palace",
-            },
-        },
-
-        -- see below for full list of options 👇
-    },
 }
