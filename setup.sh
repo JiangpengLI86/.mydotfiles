@@ -67,27 +67,21 @@ $SUDO apt-get update
 
 # Install basic packages ================================
 install_packages "${BASIC_PACKAGES[@]}"
-wait
 
 # Installation of nerdfonts ================================
 install_nerd_fonts
-wait
 
 # Installation of Yazi ================================
 install_yazi
-wait
 
 # Installation of Neovim ================================
 install_neovim "$USE_COPILOT"
-wait
 
 # Installation of Tmux ================================
 install_tmux
-wait
 
 # Additional Configuration of .bashrc ================================
 config_bashrc
-wait
 
 # Stow the targets directories ================================
 echo -e "${BOLD}${YELLOW}Stowing directories...${RESET}"
