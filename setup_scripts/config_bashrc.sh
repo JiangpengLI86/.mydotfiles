@@ -16,14 +16,14 @@ config_bashrc() {
 
 	# Configure the shell to use gpg keys ========================================
 	echo -e "${BOLD}${YELLOW} Configuring the shell to use gpg keys ...${RESET}"
-	echo "export GPG_TTY=$(tty)" >>~/.bashrc
+	echo "export GPG_TTY=\$(tty)" >>~/.bashrc
 	echo -e "${BOLD}${GREEN} Shell configured to use gpg keys successfully.${RESET}"
 
 	# Configure the shell to start SSH agnet =====================================
 	echo -e "${BOLD}${YELLOW} Configuring the shell to start SSH agent ...${RESET}"
 
 	local command='
-    if ! pgrep -u $USER ssh-agent > /dev/null; then
+    if ! ssh-add -l &>/dev/null; then
         eval "$(ssh-agent -s)"
     fi
     '
