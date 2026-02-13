@@ -17,6 +17,7 @@ This is a repo used to store my configuration files across machines.
 - The VSCode LazyVim extra is not enabled by default in this setup to avoid plugin conflicts in normal Neovim sessions.
 - Keep `nvim/.config/nvim/lazy-lock.json` in the repo. It pins plugin versions for reproducible installs across Ubuntu/WSL. Do not replace it with an empty file.
 
+
 ## Tips
 
 1. Sometimes, using yazi and NeoVim in tmux will have some display issues. To fix this, run tmux with `tmux -u`.
