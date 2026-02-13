@@ -1,72 +1,63 @@
 source ./setup_scripts/install_basic_packages.sh # For is_installed and install_packages functions
 
+install_nvm_and_node() {
+	local nvm_version="v0.40.1"
+	export NVM_DIR="$HOME/.nvm"
+
+	if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+		echo -e "${BOLD}${YELLOW} Installing nvm...${RESET}"
+		curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_version}/install.sh" | bash
+	fi
+
+	# shellcheck disable=SC1090
+	source "$NVM_DIR/nvm.sh"
+
+	echo -e "${BOLD}${YELLOW} Installing latest LTS Node.js with nvm...${RESET}"
+	nvm install --lts
+	nvm use --lts
+	nvm alias default 'lts/*'
+
+	echo -e "${BOLD}${GREEN} nvm and Node.js installed successfully.${RESET}"
+}
+
+configure_copilot_flag() {
+	local use_copilot="$1"
+	local copilot_flag='export ENABLE_COPILOT=1'
+
+	# Clear old entries to keep setup idempotent.
+	sed -i '/ENABLE_COPILOT/d' ~/.bashrc
+
+	if [ "$use_copilot" = true ]; then
+		echo "$copilot_flag" >>~/.bashrc
+		echo -e "${BOLD}${YELLOW} Copilot support enabled for Neovim.${RESET}"
+	else
+		echo -e "${BOLD}${YELLOW} Copilot support disabled for Neovim.${RESET}"
+	fi
+}
+
 # Install the neovim text editor
 install_neovim() {
+	local use_copilot="$1"
 
-	# Add PPA to the system =================================================
+	# Since neovim's package is not the newest in the ubuntu repository, use the unstable PPA.
+	echo -e "${BOLD}${YELLOW}Adding the neovim PPA to the system...${RESET}"
 
-	# Since neovim's package is not the newest in the ubuntu repository, we need to add a personal package archive (PPA).
-	echo -e "${BOLD}${YELLOW} Adding the neovim PPA to the system...${RESET}"
-
-	# To be able to use add-apt-repository, we need to ensure software-properties-common is installed.
 	dependencies=("software-properties-common")
 	install_packages "${dependencies[@]}"
 
-	wait
-
-	# Add the PPA
-	$SUDO add-apt-repository -y ppa:neovim-ppa/unstable
+	if ! grep -Rq "ppa.launchpadcontent.net/neovim-ppa/unstable" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
+		$SUDO add-apt-repository -y ppa:neovim-ppa/unstable
+	fi
 	$SUDO apt-get update
 
-	# Install neovim =========================================================
-	echo -e "${BOLD}${YELLOW} Installing neovim text editor...${RESET}"
+	echo -e "${BOLD}${YELLOW}Installing neovim text editor...${RESET}"
 	$SUDO apt-get install -y neovim
 
-	# Configure whether copilot is used here ================================
-	local use_copilot=$1
+	configure_copilot_flag "$use_copilot"
 
-	if [ $use_copilot == true ]; then
-		echo -e "${BOLD}${YELLOW} Copilot plugin will be installed in Neovim (Only used this in a trusted environment!)${RESET}"
-
-		# Just let the nvim config folder intact, the LazyVim package manager will install the copilot plugin automatically.
-
-		# Install the nvm package manager and then install nodejs, which is required by the copilot plugin.
-		echo -e "${BOLD}${YELLOW} Installing nvm package manager and nodejs required by copilot plugin...${RESET}"
-
-		curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-
-		wait
-
-		nvm install node
-
-		source ~/.nvm/nvm.sh
-		source ~/.bashrc
-		nvm install node
-
-		wait
-
-		echo -e "${BOLD}${GREEN} nvm and nodejs installed successfully.${RESET}"
-
-	else
-		echo -e "${BOLD}${YELLOW} Copilot plugin will not be installed in Neovim.${RESET}"
-
-		echo -e "${BOLD}${YELLOW} Removing the copilot installation instructions from the nvim/.config/nvim/...${RESET}"
-
-		# Remove all lines from ./nvim/.config/nvim/lua/config/lazy.lua that contains the word "copilot"
-		sed -i '/copilot/d' ./nvim/.config/nvim/lua/config/lazy.lua # sed: stream editor; -i: in-place editing; /pattern/d: delete lines matching the pattern
-
-		# Remove all lines from ./nvim/.config/nvim/lazy-lock.json that contains the word "copilot"
-		sed -i '/copilot/d' ./nvim/.config/nvim/lazy-lock.json
-
-		# Remove the file ./nvim/.config/nvim/lua/plugins/copilot.lua
-		rm -f ./nvim/.config/nvim/lua/plugins/copilot.lua
+	if [ "$use_copilot" = true ]; then
+		install_nvm_and_node
 	fi
 
-	# Installing dependencies of nvim plugin ================================
-
-	echo -e "${BOLD}${YELLOW} Installing dependencies of neovim plugin...${RESET}"
-	# Installation of nvm
-	curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-
-	echo -e "${BOLD}${GREEN} Neovim installed successfully.${RESET}"
+	echo -e "${BOLD}${GREEN}Neovim installed successfully.${RESET}"
 }

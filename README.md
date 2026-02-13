@@ -4,17 +4,25 @@ This is a repo used to store my configuration files across machines.
 
 ## Installation
 
-1. Clone this repo under ~
+1. Clone this repo under `~`
 2. Inside the repo, run: `bash setup.sh`
-3. Source your .bashrc: `source ~/.bashrc`
+   - If you want GitHub Copilot in Neovim, run: `bash setup.sh --use-copilot`
+3. Source your `.bashrc`: `source ~/.bashrc`
+
+## Notes for Ubuntu / WSL
+
+- Neovim is installed from `ppa:neovim-ppa/unstable` to keep it updated.
+- Copilot is controlled by `ENABLE_COPILOT` in `.bashrc`.
+- In WSL, clipboard integration uses `win32yank.exe` only when it is available; on native Ubuntu it falls back to default clipboard providers.
 
 ## Tips
 
-1. Sometimes, using yazi and NeoVim in tmux will have some display issues. To fix this, run the tmux with `tmux -u`.
-2. To use this settings in the VScode's terminal, you need to:
-   1. Set VSCode's terminal fonts, like: `"terminal.integrated.fontFamily":"Hack Nerd Font"`. <u>And make sure that you have also installed that font on your **local** computer</u>
-   2. Uncheck the `Terminal > Integrated: Allow Chords`.
-   3. Check the `Terminal > Integrated: Send Keybindings To Shell`
+1. Sometimes, using yazi and NeoVim in tmux will have some display issues. To fix this, run tmux with `tmux -u`.
+2. To use this settings in the VSCode terminal, you need to:
+   1. Set VSCode terminal fonts, for example: `"terminal.integrated.fontFamily":"Hack Nerd Font"`.
+      Make sure this font is installed on your **local** computer.
+   2. Uncheck `Terminal > Integrated: Allow Chords`.
+   3. Check `Terminal > Integrated: Send Keybindings To Shell`.
 
 ## Tested on: (20240920)
 
