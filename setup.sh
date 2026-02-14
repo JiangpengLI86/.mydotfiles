@@ -6,7 +6,7 @@ set -euo pipefail # Exit on errors, unset variables, and pipeline failures.
 
 # Default values for variables ================================
 USE_COPILOT=false
-BASIC_PACKAGES=("build-essential" "wget" "curl" "git" "neovim" "python3" "python3-venv" "make" "stow" "fontconfig" "unzip")
+BASIC_PACKAGES=("build-essential" "wget" "curl" "git" "python3" "python3-venv" "make" "stow" "fontconfig" "unzip")
 STOW_TARGETS=("tmux" "nvim" "yazi" "inputrc")
 
 # Determine if sudo is needed
