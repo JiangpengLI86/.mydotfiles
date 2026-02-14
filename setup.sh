@@ -34,7 +34,7 @@ export BOLD='\e[1m'
 export RESET='\e[0m' # Reset color and formatting
 
 # Check if the script is run as root ================================
-# ensure_sudo
+ensure_sudo "$@"
 
 # Check if the script is called in root directory of this project ================================
 if [[ $(basename "$PWD") != ".mydotfiles" ]]; then
