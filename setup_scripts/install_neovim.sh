@@ -66,11 +66,11 @@ configure_copilot_flag() {
 	local use_copilot="$1"
 	local copilot_flag='export ENABLE_COPILOT=1'
 
-	# Clear old entries to keep setup idempotent.
-	sed -i '/ENABLE_COPILOT/d' ~/.bashrc
+	# Clear only the exact managed flag to keep setup idempotent.
+	sed -i '/^export ENABLE_COPILOT=1$/d' ~/.bashrc
 
 	if [ "$use_copilot" = true ]; then
-		echo "$copilot_flag" >>~/.bashrc
+		echo "$copilot_flag" >> ~/.bashrc
 		echo -e "${BOLD}${YELLOW} Copilot support enabled for Neovim.${RESET}"
 	else
 		echo -e "${BOLD}${YELLOW} Copilot support disabled for Neovim.${RESET}"
