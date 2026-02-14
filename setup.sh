@@ -2,7 +2,7 @@
 # Run this script to setup the development environment.
 # Run with: sudo bash setup.sh
 
-set -e # Ensure script stops immediately if any command fails.
+set -euo pipefail # Exit on errors, unset variables, and pipeline failures.
 
 # Default values for variables ================================
 USE_COPILOT=false
@@ -43,7 +43,7 @@ if [[ $(basename "$PWD") != ".mydotfiles" ]]; then
 fi
 
 # Parse command-line arguments ================================
-while [[ "$1" != "" ]]; do # $1 is a positional parameter in bash, representing the first argument passed to the script.
+while (($#)); do # Parse remaining positional arguments safely with nounset enabled.
 	case $1 in
 	--use-copilot)
 		USE_COPILOT=true

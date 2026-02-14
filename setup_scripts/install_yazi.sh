@@ -25,8 +25,6 @@ install_yazi() {
 
 	install_packages "${dependencies[@]}"
 
-	wait
-
 	# Build yazi from source ================================================
 
 	# Download the rust setup script
@@ -35,24 +33,18 @@ install_yazi() {
 	# --: This is a separator that tells sh that what follows are arguments to be passed to the script being executed, not options for sh itself.
 	# -y: This is an option passed to rust setup script to accept all default options automatically.
 
-	wait
-
 	# Ensure that the `rustup` binary is available in the current shell
-	source $HOME/.cargo/env
+	source "$HOME/.cargo/env"
 
-	rm -rf ~/yazi
+	rm -rf "$HOME/yazi"
 	$SUDO rm -rf /opt/yazi
 
 	# Clone the yazi repository and build it
-	git clone https://github.com/sxyazi/yazi.git ~/yazi
+	git clone https://github.com/sxyazi/yazi.git "$HOME/yazi"
 
-	wait 
+	cargo build --release --locked --manifest-path "$HOME/yazi/Cargo.toml"
 
-	cargo build --release --locked --manifest-path ~/yazi/Cargo.toml
-
-	wait
-
-	$SUDO mv $HOME/yazi /opt/yazi
+	$SUDO mv "$HOME/yazi" /opt/yazi
 
 	# Modify bashrc to include yazi
 	if ! grep -qF 'export PATH=$PATH:/opt/yazi/target/release' ~/.bashrc; then
