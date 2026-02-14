@@ -1,6 +1,10 @@
 source ./setup_scripts/install_basic_packages.sh # For is_installed and install_package functions
 
+YAZI_WRAPPER_START="# >>> yazi shell wrapper >>>"
+YAZI_WRAPPER_END="# <<< yazi shell wrapper <<<"
+
 yazi_shell_wrapper=$(cat << 'EOF'
+    # >>> yazi shell wrapper >>>
     function yy() {
         local tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
         yazi "$@" --cwd-file="$tmp"
@@ -9,6 +13,7 @@ yazi_shell_wrapper=$(cat << 'EOF'
         fi
         rm -f -- "$tmp"
     }
+    # <<< yazi shell wrapper <<<
 EOF
 )
 
@@ -50,12 +55,14 @@ install_yazi() {
 	$SUDO mv $HOME/yazi /opt/yazi
 
 	# Modify bashrc to include yazi
-	echo "export PATH=\$PATH:/opt/yazi/target/release" >>~/.bashrc
+	if ! grep -qF 'export PATH=$PATH:/opt/yazi/target/release' ~/.bashrc; then
+		echo 'export PATH=$PATH:/opt/yazi/target/release' >>~/.bashrc
+	fi
 
 	# Add a shell wrapper fo yazi
 
 	# Check whether the shell wrapper is already included in the bashrc
-	if ! grep -q "yazi-cwd" ~/.bashrc; then
+	if ! grep -qF "$YAZI_WRAPPER_START" ~/.bashrc; then
 		# If the function yy() is not found, append it tothe .bashrc file.
 
 		echo -e "${BOLD}${YELLOW}Adding yazi shell wrapper to bashrc...${RESET}"

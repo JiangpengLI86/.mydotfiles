@@ -1,35 +1,38 @@
 # Add some additional configuration to the .bashrc file
 config_bashrc() {
+	local bashrc="$HOME/.bashrc"
+	local start_marker="# >>> mydotfiles managed block >>>"
+	local end_marker="# <<< mydotfiles managed block <<<"
 
-	# Re-define the PS1 prompt for better shell readability ====================
-	echo -e "${BOLD}${YELLOW} Re-defining the PS1 prompt for better shell readability ...${RESET}"
+	echo -e "${BOLD}${YELLOW} Updating managed .bashrc settings ...${RESET}"
 
 	local new_ps1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\e[38;5;195m\]\w\n\[\033[00m\]\$ '
-	echo "PS1='${new_ps1}'" >>~/.bashrc
+	local tmp_file
+	tmp_file="$(mktemp)"
 
-	echo -e "${BOLD}${GREEN} PS1 prompt re-defined successfully.${RESET}"
+	# Replace the previous managed block if it exists.
+	if grep -qF "$start_marker" "$bashrc" 2>/dev/null; then
+		awk -v start="$start_marker" -v end="$end_marker" '
+			$0 == start { in_block = 1; next }
+			$0 == end { in_block = 0; next }
+			!in_block { print }
+		' "$bashrc" >"$tmp_file"
+		mv "$tmp_file" "$bashrc"
+	else
+		rm -f "$tmp_file"
+	fi
 
-	# Configure the shell to use vi mode ==========================================
-	echo -e "${BOLD}${YELLOW} Configuring the shell to use vi mode ...${RESET}"
-	echo "set -o vi" >>~/.bashrc
-	echo -e "${BOLD}${GREEN} Shell configured to use vi mode successfully.${RESET}"
+	cat >>"$bashrc" <<EOF
 
-	# Configure the shell to use gpg keys ========================================
-	echo -e "${BOLD}${YELLOW} Configuring the shell to use gpg keys ...${RESET}"
-	echo "export GPG_TTY=\$(tty)" >>~/.bashrc
-	echo -e "${BOLD}${GREEN} Shell configured to use gpg keys successfully.${RESET}"
-
-	# Configure the shell to start SSH agnet =====================================
-	echo -e "${BOLD}${YELLOW} Configuring the shell to start SSH agent ...${RESET}"
-
-	local command='
-    if ! ssh-add -l &>/dev/null; then
-        eval "$(ssh-agent -s)"
-    fi
-    '
-	echo "${command}" >>~/.bashrc
-
-	echo -e "${BOLD}${GREEN} Shell configured to start SSH agent successfully.${RESET}"
+$start_marker
+PS1='${new_ps1}'
+set -o vi
+export GPG_TTY=\$(tty)
+if ! ssh-add -l &>/dev/null; then
+    eval "\$(ssh-agent -s)"
+fi
+$end_marker
+EOF
 
 	echo -e "${BOLD}${GREEN} Configuration of the .bashrc file completed successfully.${RESET}"
 }
