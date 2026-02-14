@@ -31,6 +31,5 @@ config_bashrc() {
 
 	echo -e "${BOLD}${GREEN} Shell configured to start SSH agent successfully.${RESET}"
 
-	source ~/.bashrc
 	echo -e "${BOLD}${GREEN} Configuration of the .bashrc file completed successfully.${RESET}"
 }

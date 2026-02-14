@@ -69,7 +69,5 @@ install_yazi() {
 		echo -e "${BOLD}${RED}yazi shell wrapper already exists in bashrc.${RESET}"
 	fi
 
-	source ~/.bashrc
-
 	echo -e "${BOLD}${GREEN}yazi installed successfully.${RESET}"
 }
