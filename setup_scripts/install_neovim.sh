@@ -36,6 +36,8 @@ install_tree_sitter_cli() {
 
 	# Fallback: build from source with cargo for better libc compatibility.
 	if command -v cargo >/dev/null 2>&1; then
+		# bindgen requires libclang to be present when building from source
+		install_packages "libclang-dev"
 		cargo install tree-sitter-cli --locked
 		if "$HOME/.cargo/bin/tree-sitter" --version >/dev/null 2>&1; then
 			# If an incompatible npm-installed binary shadows PATH, remove it.
