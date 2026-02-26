@@ -21,6 +21,46 @@ install_nvm_and_node() {
 }
 
 install_tree_sitter_cli() {
+	local cargo_tree_sitter="$HOME/.cargo/bin/tree-sitter"
+
+	if [ -s "$HOME/.cargo/env" ]; then
+		# Ensure cargo-installed binaries are available even in non-login shells.
+		source "$HOME/.cargo/env"
+	fi
+
+	ensure_tree_sitter_on_path() {
+		local cargo_bin="$1"
+
+		if ! grep -qF 'export PATH="$HOME/.cargo/bin:$PATH"' ~/.bashrc; then
+			echo 'export PATH="$HOME/.cargo/bin:$PATH"' >>~/.bashrc
+		fi
+		export PATH="$HOME/.cargo/bin:$PATH"
+
+		if [ ! -x "$cargo_bin" ]; then
+			return
+		fi
+
+		local path_tree_sitter
+		path_tree_sitter="$(command -v tree-sitter 2>/dev/null || true)"
+
+		if [ -z "$path_tree_sitter" ]; then
+			$SUDO ln -sf "$cargo_bin" /usr/local/bin/tree-sitter
+			return
+		fi
+
+		if [ "$path_tree_sitter" != "$cargo_bin" ]; then
+			if ! "$path_tree_sitter" --version >/dev/null 2>&1; then
+				$SUDO ln -sf "$cargo_bin" /usr/local/bin/tree-sitter
+			fi
+		fi
+	}
+
+	if [ -x "$cargo_tree_sitter" ] && "$cargo_tree_sitter" --version >/dev/null 2>&1; then
+		ensure_tree_sitter_on_path "$cargo_tree_sitter"
+		echo -e "${BOLD}${YELLOW} tree-sitter CLI is already installed.${RESET}"
+		return 0
+	fi
+
 	if command -v tree-sitter >/dev/null 2>&1 && tree-sitter --version >/dev/null 2>&1; then
 		echo -e "${BOLD}${YELLOW} tree-sitter CLI is already installed.${RESET}"
 		return 0
@@ -39,7 +79,8 @@ install_tree_sitter_cli() {
 		# bindgen requires libclang to be present when building from source
 		install_packages "libclang-dev"
 		cargo install tree-sitter-cli --locked
-		if "$HOME/.cargo/bin/tree-sitter" --version >/dev/null 2>&1; then
+		if "$cargo_tree_sitter" --version >/dev/null 2>&1; then
+			ensure_tree_sitter_on_path "$cargo_tree_sitter"
 			# If an incompatible npm-installed binary shadows PATH, remove it.
 			if command -v npm >/dev/null 2>&1 && command -v tree-sitter >/dev/null 2>&1; then
 				if ! tree-sitter --version >/dev/null 2>&1; then
