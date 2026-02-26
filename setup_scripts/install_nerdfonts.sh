@@ -4,6 +4,12 @@ install_nerd_fonts() {
 	echo -e "${BOLD}${YELLOW}Configuring Nerd Fonts...${RESET}"
 
 	mkdir -p "$HOME/.local/share/fonts/" # Create the directory if it doesn't exist
+	local font_glob="$HOME/.local/share/fonts/CaskaydiaMonoNerdFont*"
+
+	if compgen -G "${font_glob}.ttf" >/dev/null || compgen -G "${font_glob}.otf" >/dev/null; then
+		echo -e "${BOLD}${GREEN}Nerd Fonts CascadiaMono Nerd Font already installed. Skipping download.${RESET}"
+		return 0
+	fi
 
 	# Download the resources to the specified directory
 	echo -e "${BOLD}${YELLOW}Downloading Nerd Fonts CascadiaMono Nerd Font...${RESET}"

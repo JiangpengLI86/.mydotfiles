@@ -26,25 +26,49 @@ install_yazi() {
 	install_packages "${dependencies[@]}"
 
 	# Build yazi from source ================================================
+	local yazi_src_dir="$HOME/.local/src/yazi"
+	local yazi_install_dir="/opt/yazi"
+	local yazi_repo="https://github.com/sxyazi/yazi.git"
 
-	# Download the rust setup script
-	curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-	# -s: Tells sh to read from standard input (the script downloaded by curl).
-	# --: This is a separator that tells sh that what follows are arguments to be passed to the script being executed, not options for sh itself.
-	# -y: This is an option passed to rust setup script to accept all default options automatically.
+	# Install Rust only if missing.
+	if [ -s "$HOME/.cargo/env" ]; then
+		# Ensure cargo is on PATH if Rust was previously installed.
+		source "$HOME/.cargo/env"
+	fi
+	if ! command -v cargo >/dev/null 2>&1; then
+		curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+	fi
 
 	# Ensure that the `rustup` binary is available in the current shell
 	source "$HOME/.cargo/env"
 
-	rm -rf "$HOME/yazi"
-	$SUDO rm -rf /opt/yazi
+	# Keep a local clone to avoid rebuilding on every rerun.
+	if [ ! -d "$yazi_src_dir/.git" ]; then
+		rm -rf "$yazi_src_dir"
+		git clone "$yazi_repo" "$yazi_src_dir"
+	else
+		git -C "$yazi_src_dir" fetch --quiet origin
+	fi
 
-	# Clone the yazi repository and build it
-	git clone https://github.com/sxyazi/yazi.git "$HOME/yazi"
+	local default_branch
+	default_branch="$(git -C "$yazi_src_dir" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')"
+	if [ -z "$default_branch" ]; then
+		default_branch="main"
+	fi
 
-	cargo build --release --locked --manifest-path "$HOME/yazi/Cargo.toml"
+	local local_head remote_head
+	local_head="$(git -C "$yazi_src_dir" rev-parse HEAD)"
+	remote_head="$(git -C "$yazi_src_dir" rev-parse "origin/${default_branch}")"
 
-	$SUDO mv "$HOME/yazi" /opt/yazi
+	if [ "$local_head" = "$remote_head" ] && [ -x "$yazi_install_dir/target/release/yazi" ]; then
+		echo -e "${BOLD}${GREEN}yazi is up to date. Skipping rebuild.${RESET}"
+	else
+		git -C "$yazi_src_dir" pull --ff-only
+		cargo build --release --locked --manifest-path "$yazi_src_dir/Cargo.toml"
+
+		$SUDO rm -rf "$yazi_install_dir"
+		$SUDO cp -a "$yazi_src_dir" "$yazi_install_dir"
+	fi
 
 	# Modify bashrc to include yazi
 	if ! grep -qF 'export PATH=$PATH:/opt/yazi/target/release' ~/.bashrc; then
