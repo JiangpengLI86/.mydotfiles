@@ -78,8 +78,23 @@ install_tree_sitter_cli() {
 	if command -v cargo >/dev/null 2>&1; then
 		# bindgen requires libclang to be present when building from source
 		install_packages "libclang-dev"
-		cargo install tree-sitter-cli --locked
-		if "$cargo_tree_sitter" --version >/dev/null 2>&1; then
+		local cargo_install_ok=false
+
+		if cargo install tree-sitter-cli --locked; then
+			cargo_install_ok=true
+		elif command -v rustup >/dev/null 2>&1; then
+			echo -e "${BOLD}${YELLOW} cargo install failed; updating Rust toolchain and retrying...${RESET}"
+			rustup update stable
+			rustup default stable
+			if [ -s "$HOME/.cargo/env" ]; then
+				source "$HOME/.cargo/env"
+			fi
+			if cargo install tree-sitter-cli --locked; then
+				cargo_install_ok=true
+			fi
+		fi
+
+		if [ "$cargo_install_ok" = true ] && "$cargo_tree_sitter" --version >/dev/null 2>&1; then
 			ensure_tree_sitter_on_path "$cargo_tree_sitter"
 			# If an incompatible npm-installed binary shadows PATH, remove it.
 			if command -v npm >/dev/null 2>&1 && command -v tree-sitter >/dev/null 2>&1; then
