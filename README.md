@@ -25,6 +25,25 @@ If you want to manually update Rust in a controlled way (outside of `setup.sh`),
 
 The script updates `rustup` and the `stable` toolchain, ensures `rustfmt` and `clippy` are installed, and does not change non-stable default toolchains.
 
+## Source-built Tools Manual Uninstall
+
+If you want to remove source-built installs before reinstalling with `setup.sh`, use:
+
+- `bash setup_scripts/uninstall_source_build_tools.sh`
+- Non-interactive: `bash setup_scripts/uninstall_source_build_tools.sh --yes`
+- Status only: `bash setup_scripts/uninstall_source_build_tools.sh --check`
+
+This removes managed source-built artifacts for:
+- `yazi` installed at `/opt/yazi`
+- `tree-sitter` CLI installed via cargo at `~/.cargo/bin/tree-sitter` (plus repo-managed symlink `/usr/local/bin/tree-sitter` when it points to the cargo binary)
+
+After uninstalling, you can reinstall with `bash setup.sh`.
+
+Recommended recovery flow:
+1. Check current managed state: `bash setup_scripts/uninstall_source_build_tools.sh --check`
+2. Uninstall source-built artifacts: `bash setup_scripts/uninstall_source_build_tools.sh`
+3. Reinstall with fresh builds: `bash setup.sh`
+
 ## Tips
 
 1. Sometimes, using yazi and NeoVim in tmux will have some display issues. To fix this, run tmux with `tmux -u`.

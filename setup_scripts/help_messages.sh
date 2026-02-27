@@ -8,4 +8,6 @@ usage() {
   echo "Manual utilities:"
   echo "  bash setup_scripts/update_rust_stable.sh         Update Rust stable toolchain with confirmation"
   echo "  bash setup_scripts/update_rust_stable.sh --check Show Rust status only (no changes)"
+  echo "  bash setup_scripts/uninstall_source_build_tools.sh         Uninstall source-built yazi/tree-sitter"
+  echo "  bash setup_scripts/uninstall_source_build_tools.sh --check Show source-built install status only"
 }
