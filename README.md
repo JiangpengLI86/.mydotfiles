@@ -15,6 +15,16 @@ This is a repo used to store my configuration files across machines.
 - Copilot is controlled by `ENABLE_COPILOT` in `.bashrc`.
 - In WSL, clipboard integration uses `win32yank.exe` only when it is available; on native Ubuntu it falls back to default clipboard providers.
 
+## Rust Manual Update
+
+If you want to manually update Rust in a controlled way (outside of `setup.sh`), use:
+
+- `bash setup_scripts/update_rust_stable.sh`
+- Non-interactive: `bash setup_scripts/update_rust_stable.sh --yes`
+- Status only: `bash setup_scripts/update_rust_stable.sh --check`
+
+The script updates `rustup` and the `stable` toolchain, ensures `rustfmt` and `clippy` are installed, and does not change non-stable default toolchains.
+
 ## Tips
 
 1. Sometimes, using yazi and NeoVim in tmux will have some display issues. To fix this, run tmux with `tmux -u`.
