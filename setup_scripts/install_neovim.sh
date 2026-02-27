@@ -31,9 +31,10 @@ install_tree_sitter_cli() {
 	ensure_tree_sitter_on_path() {
 		local cargo_bin="$1"
 
-		if ! grep -qF 'export PATH="$HOME/.cargo/bin:$PATH"' ~/.bashrc; then
-			echo 'export PATH="$HOME/.cargo/bin:$PATH"' >>~/.bashrc
-		fi
+		# Keep cargo at highest precedence, even if nvm rewrites PATH later.
+		touch ~/.bashrc
+		sed -i '/^export PATH="\$HOME\/\.cargo\/bin:\$PATH"$/d' ~/.bashrc
+		echo 'export PATH="$HOME/.cargo/bin:$PATH"' >>~/.bashrc
 		export PATH="$HOME/.cargo/bin:$PATH"
 
 		if [ ! -x "$cargo_bin" ]; then
@@ -61,21 +62,9 @@ install_tree_sitter_cli() {
 		return 0
 	fi
 
-	if command -v tree-sitter >/dev/null 2>&1 && tree-sitter --version >/dev/null 2>&1; then
-		echo -e "${BOLD}${YELLOW} tree-sitter CLI is already installed.${RESET}"
-		return 0
-	fi
-
-	echo -e "${BOLD}${YELLOW} Installing tree-sitter CLI...${RESET}"
-
-	# Try apt first (preferred on Ubuntu).
-	if $SUDO apt-get install -y tree-sitter-cli && tree-sitter --version >/dev/null 2>&1; then
-		echo -e "${BOLD}${GREEN} tree-sitter CLI installed via apt.${RESET}"
-		return 0
-	fi
-
-	# Fallback: build from source with cargo for better libc compatibility.
+	# Prefer building from source with cargo for better libc compatibility.
 	if command -v cargo >/dev/null 2>&1; then
+		echo -e "${BOLD}${YELLOW} Installing tree-sitter CLI via cargo...${RESET}"
 		# bindgen requires libclang to be present when building from source
 		install_packages "libclang-dev"
 		local cargo_install_ok=false
@@ -105,6 +94,19 @@ install_tree_sitter_cli() {
 			echo -e "${BOLD}${GREEN} tree-sitter CLI installed via cargo.${RESET}"
 			return 0
 		fi
+	fi
+
+	if command -v tree-sitter >/dev/null 2>&1 && tree-sitter --version >/dev/null 2>&1; then
+		echo -e "${BOLD}${YELLOW} tree-sitter CLI is already installed.${RESET}"
+		return 0
+	fi
+
+	echo -e "${BOLD}${YELLOW} Installing tree-sitter CLI...${RESET}"
+
+	# Fallback: install from apt if cargo is unavailable.
+	if $SUDO apt-get install -y tree-sitter-cli && tree-sitter --version >/dev/null 2>&1; then
+		echo -e "${BOLD}${GREEN} tree-sitter CLI installed via apt.${RESET}"
+		return 0
 	fi
 
 	# Last fallback: npm global package.
@@ -153,13 +155,13 @@ install_neovim() {
 	echo -e "${BOLD}${YELLOW}Installing neovim text editor...${RESET}"
 	$SUDO apt-get install -y neovim
 
-	install_tree_sitter_cli
-
 	configure_copilot_flag "$use_copilot"
 
 	if [ "$use_copilot" = true ]; then
 		install_nvm_and_node
 	fi
+
+	install_tree_sitter_cli
 
 	echo -e "${BOLD}${GREEN}Neovim installed successfully.${RESET}"
 }
