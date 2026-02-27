@@ -15,6 +15,22 @@ This is a repo used to store my configuration files across machines.
 - Copilot is controlled by `ENABLE_COPILOT` in `.bashrc`.
 - In WSL, clipboard integration uses `win32yank.exe` only when it is available; on native Ubuntu it falls back to default clipboard providers.
 
+## Neovim Troubleshooting
+
+If Neovim startup shows:
+
+- `Failed to run config for nvim-treesitter-textobjects`
+- `module 'nvim-treesitter-textobjects' not found`
+
+then your local plugin checkout may be corrupted. This is not caused by `setup.sh`.
+
+Repair with:
+
+```bash
+git -C ~/.local/share/nvim/lazy/nvim-treesitter-textobjects restore .
+nvim --headless "+Lazy! sync" "+qa"
+```
+
 ## Rust Manual Update
 
 If you want to manually update Rust in a controlled way (outside of `setup.sh`), use:
