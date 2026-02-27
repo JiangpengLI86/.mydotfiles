@@ -21,12 +21,54 @@ install_nvm_and_node() {
 }
 
 install_tree_sitter_cli() {
+	local min_tree_sitter_version="0.26.1"
 	local cargo_tree_sitter="$HOME/.cargo/bin/tree-sitter"
 
 	if [ -s "$HOME/.cargo/env" ]; then
 		# Ensure cargo-installed binaries are available even in non-login shells.
 		source "$HOME/.cargo/env"
 	fi
+
+	get_tree_sitter_version() {
+		local tree_sitter_bin="$1"
+		local version_output
+		local parsed_version
+
+		if [ ! -x "$tree_sitter_bin" ]; then
+			return 1
+		fi
+
+		version_output="$("$tree_sitter_bin" --version 2>/dev/null || true)"
+		if [ -z "$version_output" ]; then
+			return 1
+		fi
+
+		parsed_version="$(printf '%s\n' "$version_output" | sed -nE 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' | head -n1)"
+		if [ -z "$parsed_version" ]; then
+			return 1
+		fi
+
+		printf '%s\n' "$parsed_version"
+		return 0
+	}
+
+	version_gte() {
+		local lhs="$1"
+		local rhs="$2"
+		[ "$(printf '%s\n%s\n' "$lhs" "$rhs" | sort -V | head -n1)" = "$rhs" ]
+	}
+
+	tree_sitter_meets_minimum() {
+		local tree_sitter_bin="$1"
+		local detected_version
+
+		detected_version="$(get_tree_sitter_version "$tree_sitter_bin" || true)"
+		if [ -z "$detected_version" ]; then
+			return 1
+		fi
+
+		version_gte "$detected_version" "$min_tree_sitter_version"
+	}
 
 	ensure_tree_sitter_on_path() {
 		local cargo_bin="$1"
@@ -37,39 +79,57 @@ install_tree_sitter_cli() {
 		echo 'export PATH="$HOME/.cargo/bin:$PATH"' >>~/.bashrc
 		export PATH="$HOME/.cargo/bin:$PATH"
 
-		if [ ! -x "$cargo_bin" ]; then
-			return
-		fi
-
-		local path_tree_sitter
-		path_tree_sitter="$(command -v tree-sitter 2>/dev/null || true)"
-
-		if [ -z "$path_tree_sitter" ]; then
+		if [ -x "$cargo_bin" ]; then
 			$SUDO ln -sf "$cargo_bin" /usr/local/bin/tree-sitter
-			return
-		fi
-
-		if [ "$path_tree_sitter" != "$cargo_bin" ]; then
-			if ! "$path_tree_sitter" --version >/dev/null 2>&1; then
-				$SUDO ln -sf "$cargo_bin" /usr/local/bin/tree-sitter
-			fi
 		fi
 	}
 
-	if [ -x "$cargo_tree_sitter" ] && "$cargo_tree_sitter" --version >/dev/null 2>&1; then
+	if [ -x "$cargo_tree_sitter" ] && tree_sitter_meets_minimum "$cargo_tree_sitter"; then
 		ensure_tree_sitter_on_path "$cargo_tree_sitter"
-		echo -e "${BOLD}${YELLOW} tree-sitter CLI is already installed.${RESET}"
+		echo -e "${BOLD}${YELLOW} tree-sitter CLI ${min_tree_sitter_version}+ is already installed via cargo.${RESET}"
 		return 0
 	fi
 
-	# Prefer building from source with cargo for better libc compatibility.
+	if command -v tree-sitter >/dev/null 2>&1; then
+		local current_tree_sitter
+		current_tree_sitter="$(command -v tree-sitter)"
+		if tree_sitter_meets_minimum "$current_tree_sitter"; then
+			echo -e "${BOLD}${YELLOW} tree-sitter CLI ${min_tree_sitter_version}+ is already installed.${RESET}"
+			return 0
+		fi
+		echo -e "${BOLD}${YELLOW} Existing tree-sitter does not meet LazyVim requirement (>= ${min_tree_sitter_version}) or is not runnable.${RESET}"
+	fi
+
+	if apt-cache show tree-sitter-cli >/dev/null 2>&1; then
+		echo -e "${BOLD}${YELLOW} Installing tree-sitter-cli from apt...${RESET}"
+		install_packages "tree-sitter-cli"
+		if command -v tree-sitter >/dev/null 2>&1; then
+			local apt_tree_sitter
+			apt_tree_sitter="$(command -v tree-sitter)"
+			if tree_sitter_meets_minimum "$apt_tree_sitter"; then
+				local apt_tree_sitter_version
+				apt_tree_sitter_version="$(get_tree_sitter_version "$apt_tree_sitter")"
+				echo -e "${BOLD}${GREEN} tree-sitter CLI installed via apt (version ${apt_tree_sitter_version}).${RESET}"
+				return 0
+			fi
+			local apt_detected_version
+			apt_detected_version="$(get_tree_sitter_version "$apt_tree_sitter" || true)"
+			if [ -n "$apt_detected_version" ]; then
+				echo -e "${BOLD}${YELLOW} apt tree-sitter version ${apt_detected_version} is below required ${min_tree_sitter_version}; switching to cargo build.${RESET}"
+			else
+				echo -e "${BOLD}${YELLOW} apt tree-sitter binary is not runnable; switching to cargo build.${RESET}"
+			fi
+		fi
+	fi
+
+	# Build from source with cargo to satisfy version requirements and avoid prebuilt libc mismatches.
 	if command -v cargo >/dev/null 2>&1; then
 		echo -e "${BOLD}${YELLOW} Installing tree-sitter CLI via cargo...${RESET}"
 		# bindgen requires libclang to be present when building from source
 		install_packages "libclang-dev"
 		local cargo_install_ok=false
 
-		if cargo install tree-sitter-cli --locked; then
+		if cargo install tree-sitter-cli --locked --force; then
 			cargo_install_ok=true
 		elif command -v rustup >/dev/null 2>&1; then
 			echo -e "${BOLD}${YELLOW} cargo install failed; updating Rust toolchain and retrying...${RESET}"
@@ -78,47 +138,34 @@ install_tree_sitter_cli() {
 			if [ -s "$HOME/.cargo/env" ]; then
 				source "$HOME/.cargo/env"
 			fi
-			if cargo install tree-sitter-cli --locked; then
+			if cargo install tree-sitter-cli --locked --force; then
 				cargo_install_ok=true
 			fi
 		fi
 
-		if [ "$cargo_install_ok" = true ] && "$cargo_tree_sitter" --version >/dev/null 2>&1; then
+		if [ "$cargo_install_ok" = true ] && tree_sitter_meets_minimum "$cargo_tree_sitter"; then
 			ensure_tree_sitter_on_path "$cargo_tree_sitter"
-			# If an incompatible npm-installed binary shadows PATH, remove it.
-			if command -v npm >/dev/null 2>&1 && command -v tree-sitter >/dev/null 2>&1; then
-				if ! tree-sitter --version >/dev/null 2>&1; then
-					npm uninstall -g tree-sitter-cli || true
-				fi
+			if command -v tree-sitter >/dev/null 2>&1 && tree_sitter_meets_minimum "$(command -v tree-sitter)"; then
+				local cargo_tree_sitter_version
+				cargo_tree_sitter_version="$(get_tree_sitter_version "$cargo_tree_sitter")"
+				echo -e "${BOLD}${GREEN} tree-sitter CLI installed via cargo (version ${cargo_tree_sitter_version}).${RESET}"
+				return 0
 			fi
-			echo -e "${BOLD}${GREEN} tree-sitter CLI installed via cargo.${RESET}"
+		fi
+	fi
+
+	if command -v tree-sitter >/dev/null 2>&1; then
+		local final_tree_sitter
+		final_tree_sitter="$(command -v tree-sitter)"
+		if tree_sitter_meets_minimum "$final_tree_sitter"; then
+			local final_tree_sitter_version
+			final_tree_sitter_version="$(get_tree_sitter_version "$final_tree_sitter")"
+			echo -e "${BOLD}${GREEN} tree-sitter CLI ready (version ${final_tree_sitter_version}).${RESET}"
 			return 0
 		fi
 	fi
 
-	if command -v tree-sitter >/dev/null 2>&1 && tree-sitter --version >/dev/null 2>&1; then
-		echo -e "${BOLD}${YELLOW} tree-sitter CLI is already installed.${RESET}"
-		return 0
-	fi
-
-	echo -e "${BOLD}${YELLOW} Installing tree-sitter CLI...${RESET}"
-
-	# Fallback: install from apt if cargo is unavailable.
-	if $SUDO apt-get install -y tree-sitter-cli && tree-sitter --version >/dev/null 2>&1; then
-		echo -e "${BOLD}${GREEN} tree-sitter CLI installed via apt.${RESET}"
-		return 0
-	fi
-
-	# Last fallback: npm global package.
-	if command -v npm >/dev/null 2>&1; then
-		npm install -g tree-sitter-cli
-		if tree-sitter --version >/dev/null 2>&1; then
-			echo -e "${BOLD}${GREEN} tree-sitter CLI installed via npm.${RESET}"
-			return 0
-		fi
-	fi
-
-	echo -e "${BOLD}${RED} Failed to install a working tree-sitter CLI.${RESET}"
+	echo -e "${BOLD}${RED} Failed to install tree-sitter CLI ${min_tree_sitter_version}+ required by LazyVim.${RESET}"
 	return 1
 }
 
