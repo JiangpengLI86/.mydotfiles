@@ -25,27 +25,28 @@ source ~/.bashrc
 
 1. Runs `apt-get update`.
 2. Installs baseline packages:
-   - `build-essential`, `wget`, `curl`, `git`, `python3`, `python3-venv`, `make`, `stow`, `fontconfig`, `unzip`, `tar`
-3. Installs **CaskaydiaMono Nerd Font** into `~/.local/share/fonts`.
-4. Installs **yazi** from source:
+   - `build-essential`, `wget`, `curl`, `git`, `python3`, `python3-venv`, `make`, `stow`, `fontconfig`, `unzip`, `tar`, `bzip2`
+3. Detects existing **conda** and upgrades it in `base`; if missing, installs **Miniconda** to `~/miniconda3`, then runs `conda init bash`.
+4. Installs **CaskaydiaMono Nerd Font** into `~/.local/share/fonts`.
+5. Installs **yazi** from source:
    - local source checkout at `~/.local/src/yazi`
    - deployed build under `/opt/yazi`
    - appends `export PATH=$PATH:/opt/yazi/target/release` to `~/.bashrc`
    - adds a `yy()` shell wrapper to preserve cwd after yazi exits
-5. Installs **Neovim** from `ppa:neovim-ppa/unstable`.
-6. Ensures Node/npm is available for Mason:
+6. Installs **Neovim** from `ppa:neovim-ppa/unstable`.
+7. Ensures Node/npm is available for Mason:
    - installs `nvm` + latest LTS Node when needed
-7. Ensures `tree-sitter` CLI is available and new enough (>= `0.26.1`):
+8. Ensures `tree-sitter` CLI is available and new enough (>= `0.26.1`):
    - prefers existing install if compatible
    - tries apt package first
    - falls back to `cargo install tree-sitter-cli --locked --force`
-8. Installs **tmux**.
-9. Rewrites a managed block in `~/.bashrc`:
+9. Installs **tmux**.
+10. Rewrites a managed block in `~/.bashrc`:
    - custom `PS1`
    - `set -o vi`
    - `export GPG_TTY=$(tty)`
    - starts `ssh-agent` if missing
-10. Runs GNU Stow for:
+11. Runs GNU Stow for:
    - `tmux`, `nvim`, `yazi`, `inputrc`
 
 ## Setup options

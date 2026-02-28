@@ -6,7 +6,7 @@ set -euo pipefail # Exit on errors, unset variables, and pipeline failures.
 
 # Default values for variables ================================
 USE_COPILOT=false
-BASIC_PACKAGES=("build-essential" "wget" "curl" "git" "python3" "python3-venv" "make" "stow" "fontconfig" "unzip" "tar")
+BASIC_PACKAGES=("build-essential" "wget" "curl" "git" "python3" "python3-venv" "make" "stow" "fontconfig" "unzip" "tar" "bzip2")
 STOW_TARGETS=("tmux" "nvim" "yazi" "inputrc")
 
 # Determine if sudo is needed
@@ -24,6 +24,7 @@ source ./setup_scripts/install_nerdfonts.sh      # For install_nerd_fonts() func
 source ./setup_scripts/install_yazi.sh           # For install_yazi() function
 source ./setup_scripts/install_neovim.sh         # For install_neovim() function
 source ./setup_scripts/install_tmux.sh           # For install_tmux() function
+source ./setup_scripts/install_miniconda.sh      # For install_miniconda() function
 source ./setup_scripts/config_bashrc.sh          # For config_bashrc() function
 
 # Color variables for better readability ================================
@@ -67,6 +68,9 @@ $SUDO apt-get update
 
 # Install basic packages ================================
 install_packages "${BASIC_PACKAGES[@]}"
+
+# Installation of Miniconda ================================
+install_miniconda
 
 # Installation of nerdfonts ================================
 install_nerd_fonts
