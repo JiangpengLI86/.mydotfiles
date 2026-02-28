@@ -1,75 +1,148 @@
 # .mydotfiles
 
-This is a repo used to store my configuration files across machines.
+Personal Ubuntu/WSL dotfiles with an automated bootstrap script for:
+- shell defaults (`.bashrc`, `.inputrc`)
+- Neovim (LazyVim-based)
+- tmux
+- yazi
 
-## Installation
+## Quick start
 
-1. Clone this repo under `~`
-2. Inside the repo, run: `bash setup.sh`
-   - If you want GitHub Copilot in Neovim, run: `bash setup.sh --use-copilot`
-3. Source your `.bashrc`: `source ~/.bashrc`
+This script expects the repo directory name to be exactly `.mydotfiles`.
 
-## Notes for Ubuntu / WSL
+```bash
+cd ~
+git clone https://github.com/JiangpengLI86/.mydotfiles.git .mydotfiles
+cd .mydotfiles
+bash setup.sh
+# or: bash setup.sh --use-copilot
+source ~/.bashrc
+```
 
-- Neovim is installed from `ppa:neovim-ppa/unstable` to keep it updated.
-- Copilot is controlled by `ENABLE_COPILOT` in `.bashrc`.
-- In WSL, clipboard integration uses `win32yank.exe` only when it is available; on native Ubuntu it falls back to default clipboard providers.
+## What `setup.sh` does
 
-## Neovim Troubleshooting
+`setup.sh` escalates with `sudo` automatically when needed, then:
 
-If Neovim startup shows:
+1. Runs `apt-get update`.
+2. Installs baseline packages:
+   - `build-essential`, `wget`, `curl`, `git`, `python3`, `python3-venv`, `make`, `stow`, `fontconfig`, `unzip`, `tar`
+3. Installs **CaskaydiaMono Nerd Font** into `~/.local/share/fonts`.
+4. Installs **yazi** from source:
+   - local source checkout at `~/.local/src/yazi`
+   - deployed build under `/opt/yazi`
+   - appends `export PATH=$PATH:/opt/yazi/target/release` to `~/.bashrc`
+   - adds a `yy()` shell wrapper to preserve cwd after yazi exits
+5. Installs **Neovim** from `ppa:neovim-ppa/unstable`.
+6. Ensures Node/npm is available for Mason:
+   - installs `nvm` + latest LTS Node when needed
+7. Ensures `tree-sitter` CLI is available and new enough (>= `0.26.1`):
+   - prefers existing install if compatible
+   - tries apt package first
+   - falls back to `cargo install tree-sitter-cli --locked --force`
+8. Installs **tmux**.
+9. Rewrites a managed block in `~/.bashrc`:
+   - custom `PS1`
+   - `set -o vi`
+   - `export GPG_TTY=$(tty)`
+   - starts `ssh-agent` if missing
+10. Runs GNU Stow for:
+   - `tmux`, `nvim`, `yazi`, `inputrc`
 
+## Setup options
+
+```bash
+bash setup.sh --use-copilot
+```
+
+This sets `export ENABLE_COPILOT=1` in `~/.bashrc`, which enables the Neovim Copilot plugin config (`lua/plugins/copilot.lua`).
+
+## Post-install notes
+
+- Reload shell config:
+  - `source ~/.bashrc`
+- tmux config uses TPM at `~/.config/tmux/plugins/tpm/tpm`.
+  - If TPM is missing, install it:
+
+```bash
+git clone https://github.com/tmux-plugins/tpm ~/.config/tmux/plugins/tpm
+```
+
+## Neovim config summary
+
+Neovim config is in `nvim/.config/nvim` and is based on LazyVim.
+
+Highlights:
+- LazyVim extras enabled for clang/cmake/python/tex/json/yaml/docker/git/dap/etc.
+- Clipboard handling supports WSL (`win32yank.exe`) and native Linux clipboard tools.
+- `nvim-treesitter` is adjusted to avoid stale parser issues.
+- `none-ls` prettier is customized for markdown tab width.
+- VimTeX only loads when a TeX compiler (`latexmk` or `tectonic`) exists.
+
+## Utility scripts
+
+### Update Rust stable toolchain
+
+```bash
+bash setup_scripts/update_rust_stable.sh
+bash setup_scripts/update_rust_stable.sh --yes
+bash setup_scripts/update_rust_stable.sh --check
+```
+
+Updates `rustup`, `stable`, and stable components (`rustfmt`, `clippy`) without changing non-stable defaults.
+
+### Uninstall source-built artifacts managed by this repo
+
+```bash
+bash setup_scripts/uninstall_source_build_tools.sh
+bash setup_scripts/uninstall_source_build_tools.sh --yes
+bash setup_scripts/uninstall_source_build_tools.sh --check
+```
+
+Removes managed source-built installs for:
+- `/opt/yazi`
+- `~/.cargo/bin/tree-sitter`
+- `/usr/local/bin/tree-sitter` symlink (only when it points to the cargo binary)
+- yazi PATH/wrapper entries in `~/.bashrc`
+
+## Troubleshooting
+
+### Treesitter textobjects module issue
+
+If Neovim reports:
 - `Failed to run config for nvim-treesitter-textobjects`
 - `module 'nvim-treesitter-textobjects' not found`
 
-then your local plugin checkout may be corrupted. This is not caused by `setup.sh`.
-
-Repair with:
+repair with:
 
 ```bash
 git -C ~/.local/share/nvim/lazy/nvim-treesitter-textobjects restore .
 nvim --headless "+Lazy! sync" "+qa"
 ```
 
-## Rust Manual Update
+### tmux rendering oddities with yazi/neovim
 
-If you want to manually update Rust in a controlled way (outside of `setup.sh`), use:
+Try:
 
-- `bash setup_scripts/update_rust_stable.sh`
-- Non-interactive: `bash setup_scripts/update_rust_stable.sh --yes`
-- Status only: `bash setup_scripts/update_rust_stable.sh --check`
+```bash
+tmux -u
+```
 
-The script updates `rustup` and the `stable` toolchain, ensures `rustfmt` and `clippy` are installed, and does not change non-stable default toolchains.
+### VS Code terminal tips
 
-## Source-built Tools Manual Uninstall
+1. Set terminal font (for example): `"terminal.integrated.fontFamily": "Hack Nerd Font"`.
+2. Disable `Terminal > Integrated: Allow Chords`.
+3. Enable `Terminal > Integrated: Send Keybindings To Shell`.
 
-If you want to remove source-built installs before reinstalling with `setup.sh`, use:
+## Optional config in repo
 
-- `bash setup_scripts/uninstall_source_build_tools.sh`
-- Non-interactive: `bash setup_scripts/uninstall_source_build_tools.sh --yes`
-- Status only: `bash setup_scripts/uninstall_source_build_tools.sh --check`
+- `condarc/.condarc` exists but is not stowed by `setup.sh`.
+- To apply it manually:
 
-This removes managed source-built artifacts for:
-- `yazi` installed at `/opt/yazi`
-- `tree-sitter` CLI installed via cargo at `~/.cargo/bin/tree-sitter` (plus repo-managed symlink `/usr/local/bin/tree-sitter` when it points to the cargo binary)
+```bash
+stow condarc
+```
 
-After uninstalling, you can reinstall with `bash setup.sh`.
-
-Recommended recovery flow:
-1. Check current managed state: `bash setup_scripts/uninstall_source_build_tools.sh --check`
-2. Uninstall source-built artifacts: `bash setup_scripts/uninstall_source_build_tools.sh`
-3. Reinstall with fresh builds: `bash setup.sh`
-
-## Tips
-
-1. Sometimes, using yazi and NeoVim in tmux will have some display issues. To fix this, run tmux with `tmux -u`.
-2. To use this settings in the VSCode terminal, you need to:
-   1. Set VSCode terminal fonts, for example: `"terminal.integrated.fontFamily":"Hack Nerd Font"`.
-      Make sure this font is installed on your **local** computer.
-   2. Uncheck `Terminal > Integrated: Allow Chords`.
-   3. Check `Terminal > Integrated: Send Keybindings To Shell`.
-
-## Tested on: (20240920)
+## Tested environments
 
 - Ubuntu 24.04 Desktop
 - Ubuntu 22.04
