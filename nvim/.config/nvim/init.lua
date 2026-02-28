@@ -1,3 +1,64 @@
+local function parse_node_semver(path)
+  local major, minor, patch = path:match("/v(%d+)%.(%d+)%.(%d+)/bin$")
+  if not major then
+    return nil
+  end
+  return { tonumber(major), tonumber(minor), tonumber(patch) }
+end
+
+local function semver_gt(lhs, rhs)
+  if not rhs then
+    return true
+  end
+  if lhs[1] ~= rhs[1] then
+    return lhs[1] > rhs[1]
+  end
+  if lhs[2] ~= rhs[2] then
+    return lhs[2] > rhs[2]
+  end
+  return lhs[3] > rhs[3]
+end
+
+local function ensure_npm_in_path()
+  if vim.fn.executable("npm") == 1 then
+    return
+  end
+
+  local home = vim.env.HOME
+  if not home then
+    return
+  end
+
+  local nvm_dir = vim.env.NVM_DIR or (home .. "/.nvm")
+  if vim.fn.isdirectory(nvm_dir) == 0 then
+    return
+  end
+
+  local node_bins = vim.fn.globpath(nvm_dir .. "/versions/node", "v*/bin", false, true)
+  local best_bin
+  local best_version
+
+  for _, bin in ipairs(node_bins) do
+    if vim.fn.executable(bin .. "/npm") == 1 then
+      local version = parse_node_semver(bin)
+      if version then
+        if semver_gt(version, best_version) then
+          best_version = version
+          best_bin = bin
+        end
+      elseif not best_bin then
+        best_bin = bin
+      end
+    end
+  end
+
+  if best_bin then
+    vim.env.PATH = best_bin .. ":" .. (vim.env.PATH or "")
+  end
+end
+
+ensure_npm_in_path()
+
 local is_wsl = vim.fn.has("wsl") == 1
 local has_win32yank = vim.fn.executable("win32yank.exe") == 1
 local has_mac_clipboard = vim.fn.executable("pbcopy") == 1

@@ -2,11 +2,18 @@ source ./setup_scripts/install_basic_packages.sh # For is_installed and install_
 
 install_nvm_and_node() {
 	local nvm_version="v0.40.1"
+	local had_nounset=false
 	export NVM_DIR="$HOME/.nvm"
 
 	if [ ! -s "$NVM_DIR/nvm.sh" ]; then
 		echo -e "${BOLD}${YELLOW} Installing nvm...${RESET}"
 		curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_version}/install.sh" | bash
+	fi
+
+	# nvm internals are not fully nounset-safe; setup.sh uses `set -u`.
+	if [[ $- == *u* ]]; then
+		had_nounset=true
+		set +u
 	fi
 
 	# shellcheck disable=SC1090
@@ -15,9 +22,31 @@ install_nvm_and_node() {
 	echo -e "${BOLD}${YELLOW} Installing latest LTS Node.js with nvm...${RESET}"
 	nvm install --lts
 	nvm use --lts
-	nvm alias default 'lts/*'
+	nvm alias default 'lts/*' >/dev/null 2>&1 || nvm alias default node >/dev/null 2>&1 || true
+
+	if [ "$had_nounset" = true ]; then
+		set -u
+	fi
 
 	echo -e "${BOLD}${GREEN} nvm and Node.js installed successfully.${RESET}"
+}
+
+ensure_npm_for_mason() {
+	if command -v npm >/dev/null 2>&1 && npm --version >/dev/null 2>&1; then
+		echo -e "${BOLD}${YELLOW} npm is already available for Mason.${RESET}"
+		return 0
+	fi
+
+	echo -e "${BOLD}${YELLOW} npm not found; installing Node.js LTS via nvm for Mason...${RESET}"
+	install_nvm_and_node
+
+	if command -v npm >/dev/null 2>&1 && npm --version >/dev/null 2>&1; then
+		echo -e "${BOLD}${GREEN} npm is now available for Mason.${RESET}"
+		return 0
+	fi
+
+	echo -e "${BOLD}${RED} Failed to provide npm required by Mason.${RESET}"
+	return 1
 }
 
 install_tree_sitter_cli() {
@@ -207,6 +236,8 @@ install_neovim() {
 	if [ "$use_copilot" = true ]; then
 		install_nvm_and_node
 	fi
+
+	ensure_npm_for_mason
 
 	install_tree_sitter_cli
 
