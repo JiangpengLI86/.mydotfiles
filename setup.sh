@@ -1,20 +1,13 @@
 #!/bin/bash
 # Run this script to setup the development environment.
-# Run with: sudo bash setup.sh
+# Run with: bash setup.sh
 
 set -euo pipefail # Exit on errors, unset variables, and pipeline failures.
 
 # Default values for variables ================================
 USE_COPILOT=false
-BASIC_PACKAGES=("build-essential" "wget" "curl" "git" "python3" "python3-venv" "make" "stow" "fontconfig" "unzip" "tar" "bzip2")
+BASIC_PACKAGES=("build-essential" "wget" "curl" "git" "python3" "python3-venv" "make" "stow" "fontconfig" "unzip" "tar" "bzip2" "xz-utils")
 STOW_TARGETS=("tmux" "nvim" "yazi" "inputrc")
-
-# Determine if sudo is needed
-if [ "$EUID" -ne 0 ]; then
-	SUDO="sudo"
-else
-	SUDO=""
-fi
 
 # Import functions ================================
 source ./setup_scripts/ensure_sudo.sh            # For ensure_sudo() function
@@ -33,9 +26,6 @@ export GREEN='\e[32m'
 export YELLOW='\e[33m'
 export BOLD='\e[1m'
 export RESET='\e[0m' # Reset color and formatting
-
-# Check if the script is run as root ================================
-ensure_sudo "$@"
 
 # Check if the script is called in root directory of this project ================================
 if [[ $(basename "$PWD") != ".mydotfiles" ]]; then
@@ -62,12 +52,26 @@ while (($#)); do # Parse remaining positional arguments safely with nounset enab
 	shift # Shift is a bash built-in that moves all the positional parameters down by one. Then $2 becomes $1, $3 becomes $2, and so on.
 done
 
+# Detect privilege mode (apt-enabled vs non-sudo fallback) ================================
+ensure_sudo
+
 # Update package list ================================
-echo -e "${BOLD}${YELLOW}Updating package list...${RESET}"
-$SUDO apt-get update
+apt_update_if_possible
 
 # Install basic packages ================================
 install_packages "${BASIC_PACKAGES[@]}"
+
+# Ensure Rust stable toolchain is installed/updated for all source builds ================================
+echo -e "${BOLD}${YELLOW}Ensuring Rust stable toolchain...${RESET}"
+bash ./setup_scripts/update_rust_stable.sh --yes
+if [ -s "$HOME/.cargo/env" ]; then
+	# shellcheck source=/dev/null
+	source "$HOME/.cargo/env"
+else
+	export PATH="$HOME/.cargo/bin:$PATH"
+fi
+# Force cargo/rustc invocations in this setup run to use stable.
+export RUSTUP_TOOLCHAIN=stable
 
 # Installation of Miniconda ================================
 install_miniconda
@@ -89,6 +93,11 @@ config_bashrc
 
 # Stow the targets directories ================================
 echo -e "${BOLD}${YELLOW}Stowing directories...${RESET}"
+if ! require_commands stow; then
+	echo -e "${BOLD}${RED}GNU Stow is required for dotfile symlinks. Install it first or rerun with sudo/root.${RESET}"
+	exit 1
+fi
+
 for target in "${STOW_TARGETS[@]}"; do
 	stow "$target"
 done
