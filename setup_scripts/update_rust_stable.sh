@@ -49,13 +49,53 @@ while (($#)); do
 	shift
 done
 
+source_cargo_env() {
+	if [ -s "$HOME/.cargo/env" ]; then
+		# shellcheck source=/dev/null
+		source "$HOME/.cargo/env"
+	else
+		export PATH="$HOME/.cargo/bin:$PATH"
+	fi
+}
+
+install_rustup() {
+	local rustup_init_script
+	rustup_init_script="$(mktemp)"
+
+	echo -e "${BOLD}${YELLOW}rustup not found; installing Rust toolchain manager...${RESET}"
+	if command -v curl >/dev/null 2>&1; then
+		curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs -o "$rustup_init_script"
+	elif command -v wget >/dev/null 2>&1; then
+		wget -qO "$rustup_init_script" https://sh.rustup.rs
+	else
+		rm -f "$rustup_init_script"
+		echo -e "${RED}curl or wget is required to install rustup automatically.${RESET}"
+		echo -e "${RED}Install one of them, then re-run this script.${RESET}"
+		exit 1
+	fi
+
+	sh "$rustup_init_script" -y --default-toolchain stable --profile default
+	rm -f "$rustup_init_script"
+	source_cargo_env
+
+	if ! command -v rustup >/dev/null 2>&1; then
+		echo -e "${RED}rustup installation completed but rustup is still not on PATH.${RESET}"
+		echo -e "${RED}Try running: source \"$HOME/.cargo/env\"${RESET}"
+		exit 1
+	fi
+}
+
+source_cargo_env
 if ! command -v rustup >/dev/null 2>&1; then
-	echo -e "${RED}rustup is not installed. Install Rust first: https://rustup.rs${RESET}"
-	exit 1
+	if [ "$CHECK_ONLY" = true ]; then
+		echo -e "${YELLOW}rustup is not installed yet. Nothing to check.${RESET}"
+		exit 0
+	fi
+	install_rustup
 fi
 
 get_default_toolchain() {
-	rustup toolchain list | awk '/\(default\)/ {print $1; exit}'
+	rustup toolchain list | awk '/\(.*default.*\)/ {print $1; exit}'
 }
 
 default_toolchain="$(get_default_toolchain)"
