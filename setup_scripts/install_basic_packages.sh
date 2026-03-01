@@ -8,6 +8,82 @@ is_installed() {
 	return $?
 }
 
+can_use_apt() {
+	[ "${CAN_USE_APT:-false}" = true ]
+}
+
+apt_update_if_possible() {
+	if can_use_apt; then
+		echo -e "${BOLD}${YELLOW}Updating package list...${RESET}"
+		$SUDO apt-get update
+	else
+		echo -e "${BOLD}${YELLOW}Skipping apt update (no root/sudo access).${RESET}"
+	fi
+}
+
+ensure_bashrc_line() {
+	local line="$1"
+	touch "$HOME/.bashrc"
+	if ! grep -qxF "$line" "$HOME/.bashrc"; then
+		echo "$line" >>"$HOME/.bashrc"
+	fi
+}
+
+ensure_local_bin_on_path() {
+	ensure_bashrc_line 'export PATH="$HOME/.local/bin:$PATH"'
+	export PATH="$HOME/.local/bin:$PATH"
+	mkdir -p "$HOME/.local/bin"
+}
+
+configure_local_cargo_build_env() {
+	local arch
+	local libc_version
+	local libc_tag
+
+	arch="$(uname -m 2>/dev/null || echo "unknown")"
+	libc_version="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}')"
+
+	if [ -n "$libc_version" ]; then
+		libc_tag="glibc-${libc_version}"
+	else
+		libc_tag="libc-unknown"
+	fi
+
+	# Keep cargo build artifacts isolated per runtime libc to avoid reusing
+	# host-compiled objects when the same HOME is shared across containers.
+	export CARGO_TARGET_DIR="$HOME/.cache/cargo-target/${arch}-${libc_tag}"
+	unset CARGO_BUILD_TARGET
+	mkdir -p "$CARGO_TARGET_DIR"
+}
+
+require_commands() {
+	local missing=()
+	local cmd
+	for cmd in "$@"; do
+		if ! command -v "$cmd" >/dev/null 2>&1; then
+			missing+=("$cmd")
+		fi
+	done
+
+	if [ "${#missing[@]}" -gt 0 ]; then
+		echo -e "${BOLD}${RED}Missing required commands:${RESET} ${missing[*]}"
+		return 1
+	fi
+	return 0
+}
+
+github_latest_asset_url() {
+	local repo="$1"
+	local asset_regex="$2"
+	local api_url="https://api.github.com/repos/${repo}/releases/latest"
+
+	curl -fsSL "$api_url" |
+		grep -Eo '"browser_download_url":[[:space:]]*"[^"]+"' |
+		sed -E 's/^"browser_download_url":[[:space:]]*"//; s/"$//' |
+		grep -E "$asset_regex" |
+		head -n1
+}
+
 # Install packages only if they are not installed
 install_packages() {
 	local to_install=()
@@ -32,10 +108,14 @@ install_packages() {
 
 	# Install the packages that are not already installed
 	if [ "${#to_install[@]}" -gt 0 ]; then
-		echo -e "${BOLD}${YELLOW}Installing the following packages:${RESET} ${GREEN}${to_install[*]}${RESET}"
-		$SUDO apt-get install -y "${to_install[@]}"
-
-		echo -e "${BOLD}${GREEN}All packages installed successfully.${RESET}"
+		if can_use_apt; then
+			echo -e "${BOLD}${YELLOW}Installing the following packages:${RESET} ${GREEN}${to_install[*]}${RESET}"
+			$SUDO apt-get install -y "${to_install[@]}"
+			echo -e "${BOLD}${GREEN}All requested apt packages installed successfully.${RESET}"
+		else
+			echo -e "${BOLD}${YELLOW}Cannot install apt packages without root/sudo. Missing packages:${RESET} ${to_install[*]}"
+			echo -e "${BOLD}${YELLOW}Continuing. If a later step requires one of these, setup will fail with a clear error.${RESET}"
+		fi
 	else
 		echo -e "${BOLD}${GREEN}All packages installed successfully.${RESET}"
 	fi
