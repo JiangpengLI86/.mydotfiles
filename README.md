@@ -1,7 +1,7 @@
 # .mydotfiles
 
 Personal Ubuntu/WSL dotfiles with an automated bootstrap script for:
-- shell defaults (`.bashrc`, `.inputrc`)
+- shell defaults (`.bashrc`, `.inputrc`, `.condarc`)
 - Neovim (LazyVim-based)
 - tmux
 - yazi
@@ -59,7 +59,7 @@ Then it:
    - `export GPG_TTY=$(tty)`
    - starts `ssh-agent` if missing
 12. Runs GNU Stow for:
-   - `tmux`, `nvim`, `yazi`, `inputrc`
+   - `tmux`, `nvim`, `yazi`, `inputrc`, `condarc`
 
 ## Setup options
 
@@ -145,15 +145,6 @@ tmux -u
 1. Set terminal font (for example): `"terminal.integrated.fontFamily": "Hack Nerd Font"`.
 2. Disable `Terminal > Integrated: Allow Chords`.
 3. Enable `Terminal > Integrated: Send Keybindings To Shell`.
-
-## Optional config in repo
-
-- `condarc/.condarc` exists but is not stowed by `setup.sh`.
-- To apply it manually:
-
-```bash
-stow condarc
-```
 
 ## Tested environments
 
