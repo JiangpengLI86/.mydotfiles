@@ -154,10 +154,60 @@ install_tree_sitter_cli() {
 		version_gte "$detected_version" "$min_tree_sitter_version"
 	}
 
+	resolve_c_compiler() {
+		local compiler
+
+		if [ -n "${CC:-}" ] && command -v "${CC}" >/dev/null 2>&1; then
+			command -v "${CC}"
+			return 0
+		fi
+
+		for compiler in cc gcc clang; do
+			if command -v "$compiler" >/dev/null 2>&1; then
+				command -v "$compiler"
+				return 0
+			fi
+		done
+
+		return 1
+	}
+
 	has_libclang() {
+		local libclang_path
+		local llvm_libdir
+		local candidate
+
+		libclang_path="${LIBCLANG_PATH:-}"
+		if [ -n "$libclang_path" ] && find "$libclang_path" -maxdepth 2 -type f -name 'libclang.so*' 2>/dev/null | grep -q .; then
+			return 0
+		fi
+
 		if command -v ldconfig >/dev/null 2>&1 && ldconfig -p 2>/dev/null | grep -q 'libclang\.so'; then
 			return 0
 		fi
+
+		if command -v llvm-config >/dev/null 2>&1; then
+			llvm_libdir="$(llvm-config --libdir 2>/dev/null || true)"
+			if [ -n "$llvm_libdir" ] && find "$llvm_libdir" -maxdepth 1 -type f -name 'libclang.so*' 2>/dev/null | grep -q .; then
+				return 0
+			fi
+		fi
+
+		if command -v dpkg-query >/dev/null 2>&1 && dpkg-query -W -f='${db:Status-Abbrev}\n' 'libclang*-dev' 2>/dev/null | grep -q '^ii '; then
+			return 0
+		fi
+
+		for candidate in \
+			"/usr/lib/llvm-"*/lib/libclang.so* \
+			"/usr/lib/"*/libclang.so* \
+			"/usr/lib64/libclang.so*" \
+			"/usr/local/lib/libclang.so*" \
+			"/lib/"*/libclang.so* \
+			"/lib64/libclang.so*"; do
+			if [ -e "$candidate" ]; then
+				return 0
+			fi
+		done
 
 		if find "$HOME/.local" -type f -name 'libclang.so*' 2>/dev/null | grep -q .; then
 			return 0
@@ -280,6 +330,21 @@ install_tree_sitter_cli() {
 	# Build from source with cargo to satisfy version requirements.
 	echo -e "${BOLD}${YELLOW} Installing tree-sitter CLI via cargo...${RESET}"
 	configure_local_cargo_build_env
+
+	local c_compiler
+	c_compiler="$(resolve_c_compiler || true)"
+	if [ -z "$c_compiler" ] && can_use_apt; then
+		echo -e "${BOLD}${YELLOW} C compiler missing; installing build-essential...${RESET}"
+		install_packages build-essential
+		c_compiler="$(resolve_c_compiler || true)"
+	fi
+
+	if [ -z "$c_compiler" ]; then
+		echo -e "${BOLD}${RED}A C compiler (cc/gcc/clang) is required to build tree-sitter-cli in non-sudo mode.${RESET}"
+		echo -e "${BOLD}${RED}Install build-essential (or clang), or provide tree-sitter ${min_tree_sitter_version}+ on PATH and rerun.${RESET}"
+		return 1
+	fi
+	export CC="$c_compiler"
 
 	if can_use_apt; then
 		# bindgen requires libclang to be present when building from source

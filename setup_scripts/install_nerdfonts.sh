@@ -3,7 +3,13 @@ install_nerd_fonts() {
 
 	echo -e "${BOLD}${YELLOW}Configuring Nerd Fonts...${RESET}"
 
-	mkdir -p "$HOME/.local/share/fonts/" # Create the directory if it doesn't exist
+	if ! require_commands curl tar xz fc-cache; then
+		echo -e "${BOLD}${RED}Missing essential tools for Nerd Fonts install (curl/tar/xz/fc-cache).${RESET}"
+		echo -e "${BOLD}${RED}Install required packages first or rerun setup with sudo/root.${RESET}"
+		return 1
+	fi
+
+	mkdir -p "$HOME/.local/share/fonts/" # Create the directory if it does not exist
 	local font_glob="$HOME/.local/share/fonts/CaskaydiaMonoNerdFont*"
 
 	if compgen -G "${font_glob}.ttf" >/dev/null || compgen -G "${font_glob}.otf" >/dev/null; then

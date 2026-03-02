@@ -21,32 +21,44 @@ source ~/.bashrc
 
 ## What `setup.sh` does
 
-`setup.sh` escalates with `sudo` automatically when needed, then:
+`setup.sh` detects privilege mode first:
 
-1. Runs `apt-get update`.
-2. Installs baseline packages:
-   - `build-essential`, `wget`, `curl`, `git`, `python3`, `python3-venv`, `make`, `stow`, `fontconfig`, `unzip`, `tar`, `bzip2`
-3. Detects existing **conda** and upgrades it in `base`; if missing, installs **Miniconda** to `~/miniconda3`, then runs `conda init bash`.
-4. Installs **CaskaydiaMono Nerd Font** into `~/.local/share/fonts`.
-5. Installs **yazi** from source:
-   - local source checkout at `~/.local/src/yazi`
-   - deployed build under `/opt/yazi`
-   - appends `export PATH=$PATH:/opt/yazi/target/release` to `~/.bashrc`
+- If root/sudo is available, it uses apt where appropriate.
+- If sudo is unavailable, it continues in non-sudo mode and uses already-installed tools, prebuilt binaries, or source builds in `~/.local`.
+- If essential build components are missing in non-sudo mode, it exits with a clear error.
+
+Then it:
+
+1. Runs `apt-get update` when apt is available.
+2. Installs baseline packages via apt when possible:
+   - build-essential, wget, curl, git, python3, python3-venv, make, stow, fontconfig, unzip, tar, bzip2, xz-utils
+3. Runs `setup_scripts/update_rust_stable.sh --yes` and exports `RUSTUP_TOOLCHAIN=stable` for this setup run.
+4. Detects existing **conda** and upgrades it in `base`; if missing, installs **Miniconda** to `~/miniconda3`, then runs `conda init bash`.
+5. Installs **CaskaydiaMono Nerd Font** into `~/.local/share/fonts`.
+6. Installs **yazi**:
+   - prefers latest official **musl** prebuilt release into `~/.local/bin` for better libc compatibility
+   - falls back to source build from `~/.local/src/yazi` when needed
    - adds a `yy()` shell wrapper to preserve cwd after yazi exits
-6. Installs **Neovim** from `ppa:neovim-ppa/unstable`.
-7. Ensures Node/npm is available for Mason:
+7. Installs **Neovim**:
+   - apt (`ppa:neovim-ppa/unstable`) when root/sudo is available
+   - otherwise latest official Linux prebuilt into `~/.local/opt/nvim` + `~/.local/bin/nvim`
+8. Ensures Node/npm is available for Mason:
    - installs `nvm` + latest LTS Node when needed
-8. Ensures `tree-sitter` CLI is available and new enough (>= `0.26.1`):
+9. Ensures `tree-sitter` CLI is available and new enough (>= `0.26.1`):
    - prefers existing install if compatible
    - tries apt package first
    - falls back to `cargo install tree-sitter-cli --locked --force`
-9. Installs **tmux**.
-10. Rewrites a managed block in `~/.bashrc`:
+   - isolates cargo target artifacts by local libc/arch to avoid cross-host cache reuse issues
+   - removes incompatible cached Neovim parser `.so` files so they rebuild locally
+10. Installs **tmux**:
+   - apt when root/sudo is available
+   - otherwise builds from source into `~/.local` (with local ncurses/libevent build if needed)
+11. Rewrites a managed block in `~/.bashrc`:
    - custom `PS1`
    - `set -o vi`
    - `export GPG_TTY=$(tty)`
    - starts `ssh-agent` if missing
-11. Runs GNU Stow for:
+12. Runs GNU Stow for:
    - `tmux`, `nvim`, `yazi`, `inputrc`
 
 ## Setup options
