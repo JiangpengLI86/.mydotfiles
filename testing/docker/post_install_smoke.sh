@@ -31,18 +31,7 @@ if ! command -v nvim >/dev/null 2>&1; then
 fi
 nvim --version | head -n1
 
-echo "Bootstrapping LazyVim plugins (first run can take time)..."
-sync_log="$(mktemp /tmp/nvim-lazy-sync.XXXXXX.log)"
-if ! nvim --headless "+Lazy! sync" "+qa" >"$sync_log" 2>&1; then
-	echo "Neovim Lazy sync failed. Recent log:"
-	tail -n 200 "$sync_log"
-	rm -f "$sync_log"
-	exit 1
-fi
-tail -n 40 "$sync_log"
-rm -f "$sync_log"
-
-echo "Checking Neovim commands/logs (:messages, :NoiceLog, :MasonLog)..."
+echo "Bootstrapping LazyVim and checking Neovim commands/logs (:messages, :NoiceLog, :MasonLog)..."
 check_log="$(mktemp /tmp/nvim-post-check.XXXXXX.log)"
 if ! nvim --headless "+luafile testing/docker/nvim_post_install_check.lua" >"$check_log" 2>&1; then
 	echo "Neovim post-install check failed. Recent log:"
