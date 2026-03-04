@@ -120,3 +120,43 @@ install_packages() {
 		echo -e "${BOLD}${GREEN}All packages installed successfully.${RESET}"
 	fi
 }
+
+verify_essential_prerequisites() {
+	local missing=()
+	local cmd
+	local essential_commands=(
+		cc
+		wget
+		curl
+		git
+		python3
+		make
+		stow
+		fc-cache
+		unzip
+		tar
+		bzip2
+		xz
+	)
+
+	for cmd in "${essential_commands[@]}"; do
+		if ! command -v "$cmd" >/dev/null 2>&1; then
+			missing+=("$cmd")
+		fi
+	done
+
+	if command -v python3 >/dev/null 2>&1; then
+		if ! python3 -m venv --help >/dev/null 2>&1; then
+			missing+=("python3-venv(module)")
+		fi
+	fi
+
+	if [ "${#missing[@]}" -gt 0 ]; then
+		echo -e "${BOLD}${RED}Missing essential commands/prerequisites:${RESET} ${missing[*]}"
+		echo -e "${BOLD}${RED}Install required packages manually or rerun with sudo/root.${RESET}"
+		return 1
+	fi
+
+	echo -e "${BOLD}${GREEN}All essential prerequisites are available.${RESET}"
+	return 0
+}

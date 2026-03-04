@@ -32,35 +32,64 @@ Then it:
 1. Runs `apt-get update` when apt is available.
 2. Installs baseline packages via apt when possible:
    - build-essential, wget, curl, git, python3, python3-venv, make, stow, fontconfig, unzip, tar, bzip2, xz-utils
-3. Runs `setup_scripts/update_rust_stable.sh --yes` and exports `RUSTUP_TOOLCHAIN=stable` for this setup run.
-4. Detects existing **conda** and upgrades it in `base`; if missing, installs **Miniconda** to `~/miniconda3`, then runs `conda init bash`.
-5. Installs **CaskaydiaMono Nerd Font** into `~/.local/share/fonts`.
-6. Installs **yazi**:
+3. Verifies essential prerequisites are present (`cc`, `wget`, `curl`, `git`, `python3`, `make`, `stow`, `fc-cache`, `unzip`, `tar`, `bzip2`, `xz`, Python `venv` module), and exits early with a clear error if they are missing.
+4. Runs `setup_scripts/update_rust_stable.sh --yes` and exports `RUSTUP_TOOLCHAIN=stable` for this setup run.
+5. Detects existing **conda** and upgrades it in `base`; if missing, installs **Miniconda** to `~/miniconda3`, then runs `conda init bash`.
+6. Installs **CaskaydiaMono Nerd Font** into `~/.local/share/fonts`.
+7. Installs **yazi**:
    - prefers latest official **musl** prebuilt release into `~/.local/bin` for better libc compatibility
    - falls back to source build from `~/.local/src/yazi` when needed
+   - if a legacy source build exists at `/opt/yazi/target/release`, reuses it by linking `yazi`/`ya` into `~/.local/bin`
    - adds a `yy()` shell wrapper to preserve cwd after yazi exits
-7. Installs **Neovim**:
+8. Installs **Neovim**:
    - apt (`ppa:neovim-ppa/unstable`) when root/sudo is available
    - otherwise Linux prebuilt into `~/.local/opt/nvim` + `~/.local/bin/nvim`
    - auto-selects `neovim/neovim-releases` binaries on older glibc hosts for compatibility
-8. Ensures Node/npm is available for Mason:
+9. Ensures Node/npm is available for Mason:
    - installs `nvm` + latest LTS Node when needed
-9. Ensures `tree-sitter` CLI is available and new enough (>= `0.26.1`):
+10. Ensures `tree-sitter` CLI is available and new enough (>= `0.26.1`):
    - prefers existing install if compatible
    - tries apt package first
    - falls back to `cargo install tree-sitter-cli --locked --force`
    - isolates cargo target artifacts by local libc/arch to avoid cross-host cache reuse issues
    - removes incompatible cached Neovim parser `.so` files so they rebuild locally
-10. Installs **tmux**:
+11. Installs **tmux**:
    - apt when root/sudo is available
    - otherwise builds from source into `~/.local` (with local ncurses/libevent build if needed)
-11. Rewrites a managed block in `~/.bashrc`:
+12. Rewrites a managed block in `~/.bashrc`:
    - custom `PS1`
    - `set -o vi`
    - `export GPG_TTY=$(tty)`
    - starts `ssh-agent` if missing
-12. Runs GNU Stow for:
+13. Runs GNU Stow for:
    - `tmux`, `nvim`, `yazi`, `inputrc`, `condarc`
+
+## Docker scenario tests
+
+Automated tests for privilege/package edge cases are in `testing/docker`.
+
+Run all three scenarios:
+
+```bash
+bash testing/docker/run_tests.sh
+```
+
+Scenarios covered:
+1. sudo permission granted to the non-root user.
+2. no sudo permission and essential packages missing (expects failure).
+3. no sudo permission and all essential packages pre-installed.
+
+Notes:
+- Tests copy this repo into each image via `COPY . ...` (no host bind mount), avoiding host/container file permission issues.
+- Containers are always deleted after execution (`docker run --rm`).
+- Temporary test images are removed by default; pass `--keep-images` to retain them.
+- If Docker or the Docker daemon is unavailable, tests stop with: `Testing could not be run without Docker.`
+- Case 2 uses `SETUP_TEST_EXIT_AFTER_PREREQS=1` to validate the non-sudo missing-prereqs failure path quickly.
+- Cases 1 and 3 run full `setup.sh`, then run post-install smoke checks in `testing/docker/post_install_smoke.sh`:
+  - `yazi --version`
+  - `tmux -V` and isolated tmux server lifecycle
+  - Neovim headless checks for `:messages`, `:NoiceLog`, and `:MasonLog`
+- Neovim smoke checks run `Lazy! sync` first because first-run LazyVim plugin installation can take time.
 
 ## Setup options
 

@@ -1,0 +1,11 @@
+FROM ubuntu:24.04
+
+RUN useradd -m -s /bin/bash tester
+
+COPY . /home/tester/.mydotfiles
+RUN chown -R tester:tester /home/tester/.mydotfiles
+
+USER tester
+WORKDIR /home/tester/.mydotfiles
+
+CMD ["bash", "-lc", "SETUP_TEST_EXIT_AFTER_PREREQS=1 bash setup.sh"]
