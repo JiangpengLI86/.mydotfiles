@@ -1,0 +1,34 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        wget \
+        curl \
+        git \
+        python3 \
+        python3-venv \
+        make \
+        stow \
+        fontconfig \
+        unzip \
+        tar \
+        bzip2 \
+        xz-utils \
+        pkg-config \
+        bison \
+        libclang-dev \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m -s /bin/bash tester
+
+COPY . /home/tester/.mydotfiles
+RUN chown -R tester:tester /home/tester/.mydotfiles
+
+USER tester
+WORKDIR /home/tester/.mydotfiles
+
+CMD ["bash", "-lc", "bash setup.sh && bash testing/docker/post_install_smoke.sh"]
