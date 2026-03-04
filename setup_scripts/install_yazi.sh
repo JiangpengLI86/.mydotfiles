@@ -7,8 +7,21 @@ yazi_shell_wrapper=$(
 	cat <<'EOF'
     # >>> yazi shell wrapper >>>
     function yy() {
+        local yazi_cmd
         local tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
-        yazi "$@" --cwd-file="$tmp"
+        if command -v yazi >/dev/null 2>&1; then
+            yazi_cmd="$(command -v yazi)"
+        elif [ -x "$HOME/.local/bin/yazi" ]; then
+            yazi_cmd="$HOME/.local/bin/yazi"
+        elif [ -x "/opt/yazi/target/release/yazi" ]; then
+            yazi_cmd="/opt/yazi/target/release/yazi"
+        else
+            echo "yy: yazi is not installed or not on PATH."
+            rm -f -- "$tmp"
+            return 127
+        fi
+
+        "$yazi_cmd" "$@" --cwd-file="$tmp"
         if cwd="$(cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
             builtin cd -- "$cwd"
         fi
@@ -18,19 +31,97 @@ yazi_shell_wrapper=$(
 EOF
 )
 
-yazi_binaries_usable() {
-	local yazi_bin
-	local ya_bin
+resolve_yazi_bins() {
+	local yazi_bin=""
+	local ya_bin=""
+	local yazi_from_path=""
+	local ya_from_path=""
+	local yazi_dir=""
+	local ya_dir=""
 
-	yazi_bin="$(command -v yazi 2>/dev/null || true)"
-	ya_bin="$(command -v ya 2>/dev/null || true)"
+	yazi_from_path="$(command -v yazi 2>/dev/null || true)"
+	if [ -n "$yazi_from_path" ]; then
+		yazi_dir="$(dirname "$yazi_from_path")"
+		if [ -x "$yazi_dir/ya" ]; then
+			yazi_bin="$yazi_from_path"
+			ya_bin="$yazi_dir/ya"
+		fi
+	fi
 
-	if [ -z "$yazi_bin" ] || [ -z "$ya_bin" ] || [ ! -x "$yazi_bin" ] || [ ! -x "$ya_bin" ]; then
+	if [ -z "$yazi_bin" ] || [ -z "$ya_bin" ]; then
+		ya_from_path="$(command -v ya 2>/dev/null || true)"
+		if [ -n "$ya_from_path" ]; then
+			ya_dir="$(dirname "$ya_from_path")"
+			if [ -x "$ya_dir/yazi" ]; then
+				yazi_bin="$ya_dir/yazi"
+				ya_bin="$ya_from_path"
+			fi
+		fi
+	fi
+
+	if [ -z "$yazi_bin" ] || [ -z "$ya_bin" ]; then
+		if [ -x "$HOME/.local/bin/yazi" ] && [ -x "$HOME/.local/bin/ya" ]; then
+			yazi_bin="$HOME/.local/bin/yazi"
+			ya_bin="$HOME/.local/bin/ya"
+		fi
+	fi
+
+	if [ -z "$yazi_bin" ] || [ -z "$ya_bin" ]; then
+		if [ -x "/opt/yazi/target/release/yazi" ] && [ -x "/opt/yazi/target/release/ya" ]; then
+			yazi_bin="/opt/yazi/target/release/yazi"
+			ya_bin="/opt/yazi/target/release/ya"
+		fi
+	fi
+
+	if [ -z "$yazi_bin" ] || [ -z "$ya_bin" ]; then
 		return 1
 	fi
 
+	if [ ! -x "$yazi_bin" ] || [ ! -x "$ya_bin" ]; then
+		return 1
+	fi
+
+	echo "$yazi_bin|$ya_bin"
+	return 0
+}
+
+yazi_binaries_usable() {
+	local resolved_bins
+	local yazi_bin
+	local ya_bin
+
+	resolved_bins="$(resolve_yazi_bins || true)"
+	if [ -z "$resolved_bins" ]; then
+		return 1
+	fi
+	yazi_bin="${resolved_bins%%|*}"
+	ya_bin="${resolved_bins##*|}"
+
 	"$yazi_bin" --version >/dev/null 2>&1 || return 1
 	"$ya_bin" --help >/dev/null 2>&1 || "$ya_bin" --version >/dev/null 2>&1 || return 1
+	return 0
+}
+
+ensure_yazi_commands_on_path() {
+	local resolved_bins
+	local yazi_bin
+	local ya_bin
+
+	ensure_local_bin_on_path
+
+	resolved_bins="$(resolve_yazi_bins || true)"
+	if [ -z "$resolved_bins" ]; then
+		return 1
+	fi
+	yazi_bin="${resolved_bins%%|*}"
+	ya_bin="${resolved_bins##*|}"
+
+	if [ "$yazi_bin" != "$HOME/.local/bin/yazi" ]; then
+		ln -sfn "$yazi_bin" "$HOME/.local/bin/yazi" || return 1
+	fi
+	if [ "$ya_bin" != "$HOME/.local/bin/ya" ]; then
+		ln -sfn "$ya_bin" "$HOME/.local/bin/ya" || return 1
+	fi
 	return 0
 }
 
@@ -160,16 +251,40 @@ install_yazi_from_source() {
 }
 
 add_yazi_shell_wrapper() {
-	touch ~/.bashrc
-	if ! grep -qF "$YAZI_WRAPPER_START" ~/.bashrc; then
-		echo -e "${BOLD}${YELLOW}Adding yazi shell wrapper to bashrc...${RESET}"
-		echo "" >>~/.bashrc
-		echo "$yazi_shell_wrapper" >>~/.bashrc
-		echo "" >>~/.bashrc
-		echo -e "${BOLD}${GREEN}yazi shell wrapper added to bashrc.${RESET}"
-	else
-		echo -e "${BOLD}${YELLOW}yazi shell wrapper already exists in bashrc.${RESET}"
+	local bashrc_path="$HOME/.bashrc"
+	local tmp_file
+
+	if ! touch "$bashrc_path"; then
+		echo -e "${BOLD}${RED}Unable to access ${bashrc_path} for yazi wrapper configuration.${RESET}"
+		return 1
 	fi
+
+	if [ ! -w "$bashrc_path" ]; then
+		echo -e "${BOLD}${RED}${bashrc_path} is not writable; cannot configure yazi shell wrapper.${RESET}"
+		return 1
+	fi
+
+	if grep -qF "$YAZI_WRAPPER_START" "$bashrc_path"; then
+		echo -e "${BOLD}${YELLOW}Updating yazi shell wrapper in bashrc...${RESET}"
+		tmp_file="$(mktemp "${TMPDIR:-/tmp}/bashrc.yazi.XXXXXX")"
+		awk -v start="$YAZI_WRAPPER_START" -v end="$YAZI_WRAPPER_END" '
+			index($0, start) { skip = 1; next }
+			index($0, end)   { skip = 0; next }
+			!skip            { print }
+		' "$bashrc_path" >"$tmp_file" || {
+			rm -f "$tmp_file"
+			return 1
+		}
+		mv "$tmp_file" "$bashrc_path" || return 1
+	else
+		echo -e "${BOLD}${YELLOW}Adding yazi shell wrapper to bashrc...${RESET}"
+	fi
+
+	echo "" >>"$bashrc_path" || return 1
+	echo "$yazi_shell_wrapper" >>"$bashrc_path" || return 1
+	echo "" >>"$bashrc_path" || return 1
+	echo -e "${BOLD}${GREEN}yazi shell wrapper is configured in bashrc.${RESET}"
+	return 0
 }
 
 # Install the terminal file manager yazi
@@ -180,7 +295,8 @@ install_yazi() {
 	install_packages file fd-find ripgrep fzf
 
 	if yazi_binaries_usable; then
-		echo -e "${BOLD}${YELLOW}yazi is already installed at $(command -v yazi).${RESET}"
+		ensure_yazi_commands_on_path
+		echo -e "${BOLD}${YELLOW}yazi is already installed and runnable.${RESET}"
 	else
 		if command -v yazi >/dev/null 2>&1 || command -v ya >/dev/null 2>&1; then
 			echo -e "${BOLD}${YELLOW}Existing yazi/ya binary is not runnable in this environment; reinstalling.${RESET}"
@@ -197,7 +313,7 @@ install_yazi() {
 		return 1
 	fi
 
-	ensure_local_bin_on_path
+	ensure_yazi_commands_on_path
 	add_yazi_shell_wrapper
 	echo -e "${BOLD}${GREEN}yazi installed successfully.${RESET}"
 }
