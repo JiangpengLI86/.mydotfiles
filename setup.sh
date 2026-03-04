@@ -60,6 +60,12 @@ apt_update_if_possible
 
 # Install basic packages ================================
 install_packages "${BASIC_PACKAGES[@]}"
+verify_essential_prerequisites
+
+if [ "${SETUP_TEST_EXIT_AFTER_PREREQS:-0}" = "1" ]; then
+	echo -e "${BOLD}${YELLOW}SETUP_TEST_EXIT_AFTER_PREREQS=1 set. Stopping after prerequisite checks.${RESET}"
+	exit 0
+fi
 
 # Ensure Rust stable toolchain is installed/updated for all source builds ================================
 echo -e "${BOLD}${YELLOW}Ensuring Rust stable toolchain...${RESET}"
