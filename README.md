@@ -41,7 +41,8 @@ Then it:
    - adds a `yy()` shell wrapper to preserve cwd after yazi exits
 7. Installs **Neovim**:
    - apt (`ppa:neovim-ppa/unstable`) when root/sudo is available
-   - otherwise latest official Linux prebuilt into `~/.local/opt/nvim` + `~/.local/bin/nvim`
+   - otherwise Linux prebuilt into `~/.local/opt/nvim` + `~/.local/bin/nvim`
+   - auto-selects `neovim/neovim-releases` binaries on older glibc hosts for compatibility
 8. Ensures Node/npm is available for Mason:
    - installs `nvm` + latest LTS Node when needed
 9. Ensures `tree-sitter` CLI is available and new enough (>= `0.26.1`):

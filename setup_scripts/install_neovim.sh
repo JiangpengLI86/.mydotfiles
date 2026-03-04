@@ -52,11 +52,14 @@ ensure_npm_for_mason() {
 install_neovim_prebuilt() {
 	local arch
 	local nvim_arch
+	local glibc_version
+	local source_repo="neovim/neovim"
 	local download_url
 	local install_root="$HOME/.local/opt"
 	local target_dir="$install_root/nvim"
 	local tmp_tar
 	local extracted_dir
+	local candidate_nvim
 
 	arch="$(uname -m)"
 	case "$arch" in
@@ -77,8 +80,15 @@ install_neovim_prebuilt() {
 		return 1
 	}
 
-	download_url="https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${nvim_arch}.tar.gz"
-	echo -e "${BOLD}${YELLOW}Installing Neovim from prebuilt release (${nvim_arch})...${RESET}"
+	glibc_version="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}' || true)"
+	if [ -n "$glibc_version" ] && [ "$glibc_version" != "2.34" ] && [ "$(printf '%s\n%s\n' "$glibc_version" "2.34" | sort -V | head -n1)" = "$glibc_version" ]; then
+		# neovim/neovim-releases provides binaries built for older GLIBC.
+		source_repo="neovim/neovim-releases"
+		echo -e "${BOLD}${YELLOW}Detected GLIBC ${glibc_version}; using ${source_repo} prebuilt binaries.${RESET}"
+	fi
+
+	download_url="https://github.com/${source_repo}/releases/latest/download/nvim-linux-${nvim_arch}.tar.gz"
+	echo -e "${BOLD}${YELLOW}Installing Neovim from ${source_repo} (${nvim_arch})...${RESET}"
 
 	tmp_tar="$(mktemp /tmp/nvim-linux.XXXXXX.tar.gz)"
 	curl -fL "$download_url" -o "$tmp_tar"
@@ -90,16 +100,24 @@ install_neovim_prebuilt() {
 	rm -f "$tmp_tar"
 
 	extracted_dir="$(find "$target_dir" -mindepth 1 -maxdepth 1 -type d | head -n1)"
-	if [ -z "$extracted_dir" ] || [ ! -x "$extracted_dir/bin/nvim" ]; then
+	candidate_nvim="$extracted_dir/bin/nvim"
+	if [ -z "$extracted_dir" ] || [ ! -x "$candidate_nvim" ]; then
 		echo -e "${BOLD}${RED}Failed to locate nvim binary after extraction.${RESET}"
 		return 1
 	fi
 
-	ensure_local_bin_on_path
-	ln -sf "$extracted_dir/bin/nvim" "$HOME/.local/bin/nvim"
+	if ! "$candidate_nvim" --version >/dev/null 2>&1; then
+		echo -e "${BOLD}${RED}Downloaded nvim binary is not runnable on this host:${RESET}"
+		echo -e "${RED}$("$candidate_nvim" --version 2>&1 | head -n3 || true)${RESET}"
+		return 1
+	fi
 
-	if ! command -v nvim >/dev/null 2>&1; then
-		echo -e "${BOLD}${RED}nvim is still not on PATH after local installation.${RESET}"
+	ensure_local_bin_on_path
+	ln -sf "$candidate_nvim" "$HOME/.local/bin/nvim"
+	hash -r
+
+	if ! "$HOME/.local/bin/nvim" --version >/dev/null 2>&1; then
+		echo -e "${BOLD}${RED}nvim is still not runnable after local installation.${RESET}"
 		return 1
 	fi
 }
@@ -415,10 +433,29 @@ configure_copilot_flag() {
 # Install the neovim text editor
 install_neovim() {
 	local use_copilot="$1"
+	local existing_nvim=""
+	local nvim_runnable=false
 
 	if command -v nvim >/dev/null 2>&1; then
+		existing_nvim="$(command -v nvim)"
+		if nvim --version >/dev/null 2>&1; then
+			nvim_runnable=true
+		fi
+	fi
+
+	if [ "$nvim_runnable" = false ] && [ "$existing_nvim" = "$HOME/.local/bin/nvim" ]; then
+		# Remove stale local symlink so repaired installs can take effect immediately.
+		rm -f "$HOME/.local/bin/nvim"
+		hash -r
+		existing_nvim=""
+	fi
+
+	if [ "$nvim_runnable" = true ]; then
 		echo -e "${BOLD}${YELLOW}Neovim already installed at $(command -v nvim).${RESET}"
 	elif can_use_apt; then
+		if [ -n "$existing_nvim" ]; then
+			echo -e "${BOLD}${YELLOW}Existing nvim at ${existing_nvim} is not runnable; reinstalling via apt.${RESET}"
+		fi
 		# Since neovim's package is not the newest in the ubuntu repository, use the unstable PPA.
 		echo -e "${BOLD}${YELLOW}Adding the neovim PPA to the system...${RESET}"
 
@@ -432,7 +469,15 @@ install_neovim() {
 		echo -e "${BOLD}${YELLOW}Installing neovim text editor...${RESET}"
 		$SUDO apt-get install -y neovim
 	else
+		if [ -n "$existing_nvim" ]; then
+			echo -e "${BOLD}${YELLOW}Existing nvim at ${existing_nvim} is not runnable; reinstalling via prebuilt binaries.${RESET}"
+		fi
 		install_neovim_prebuilt
+	fi
+
+	if ! command -v nvim >/dev/null 2>&1 || ! nvim --version >/dev/null 2>&1; then
+		echo -e "${BOLD}${RED}Neovim installation failed: nvim is still missing or not runnable.${RESET}"
+		return 1
 	fi
 
 	configure_copilot_flag "$use_copilot"
