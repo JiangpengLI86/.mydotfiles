@@ -56,12 +56,18 @@ Then it:
 11. Installs **tmux**:
    - apt when root/sudo is available
    - otherwise builds from source into `~/.local` (with local ncurses/libevent build if needed)
-12. Rewrites a managed block in `~/.bashrc`:
+12. Installs latest **VS Code CLI** from Microsoft download endpoint:
+   - downloads `https://code.visualstudio.com/sha/download?build=stable&os=...`
+   - installs/overwrites `~/.local/opt/vscode-cli/bin/code`
+   - manages a dedicated `.bashrc` block with:
+     - `alias code="$HOME/.local/opt/vscode-cli/bin/code"`
+     - PATH-prepend for `~/.local/opt/vscode-cli/bin` so this managed CLI is preferred over system `code`
+13. Rewrites a managed block in `~/.bashrc`:
    - custom `PS1`
    - `set -o vi`
    - `export GPG_TTY=$(tty)`
    - starts `ssh-agent` if missing
-13. Runs GNU Stow for:
+14. Runs GNU Stow for:
    - `tmux`, `nvim`, `yazi`, `inputrc`, `condarc`
 
 ## Docker scenario tests
@@ -88,6 +94,8 @@ Notes:
 - Cases 1 and 3 run full `setup.sh`, then run post-install smoke checks in `testing/docker/post_install_smoke.sh`:
   - `yazi --version`
   - `tmux -V` and isolated tmux server lifecycle
+  - `~/.local/opt/vscode-cli/bin/code --version`
+  - VS Code CLI managed block markers + alias/PATH lines in `~/.bashrc`
   - Neovim headless checks for `:messages`, `:NoiceLog`, and `:MasonLog`
 - Neovim smoke checks run `Lazy! sync` first because first-run LazyVim plugin installation can take time.
 
