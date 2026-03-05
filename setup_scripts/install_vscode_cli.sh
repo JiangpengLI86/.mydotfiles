@@ -18,7 +18,7 @@ vscode_cli_download_os() {
 		echo "cli-linux-armhf"
 		;;
 	*)
-		echo -e "${BOLD}${RED}Unsupported architecture for VS Code CLI installer: ${arch}${RESET}"
+		echo -e "${BOLD}${RED}Unsupported architecture for VS Code CLI installer: ${arch}${RESET}" >&2
 		return 1
 		;;
 	esac
@@ -30,12 +30,12 @@ configure_vscode_cli_shell_shortcut() {
 	local tmp_file
 
 	if ! touch "$bashrc_path"; then
-		echo -e "${BOLD}${RED}Unable to access ${bashrc_path} for VS Code CLI shortcut configuration.${RESET}"
+		echo -e "${BOLD}${RED}Unable to access ${bashrc_path} for VS Code CLI shortcut configuration.${RESET}" >&2
 		return 1
 	fi
 
 	if [ ! -w "$bashrc_path" ]; then
-		echo -e "${BOLD}${RED}${bashrc_path} is not writable; cannot configure VS Code CLI shortcut.${RESET}"
+		echo -e "${BOLD}${RED}${bashrc_path} is not writable; cannot configure VS Code CLI shortcut.${RESET}" >&2
 		return 1
 	fi
 
@@ -88,7 +88,7 @@ install_vscode_cli() {
 	echo -e "${BOLD}${YELLOW}Installing VS Code CLI...${RESET}"
 
 	if ! require_commands curl tar install uname mktemp; then
-		echo -e "${BOLD}${RED}Missing essential tools for VS Code CLI install.${RESET}"
+		echo -e "${BOLD}${RED}Missing essential tools for VS Code CLI install.${RESET}" >&2
 		return 1
 	fi
 
@@ -106,7 +106,7 @@ install_vscode_cli() {
 	extracted_code_path="$tmp_dir/code"
 
 	if [ ! -f "$extracted_code_path" ]; then
-		echo -e "${BOLD}${RED}Downloaded VS Code CLI archive did not contain the expected code binary.${RESET}"
+		echo -e "${BOLD}${RED}Downloaded VS Code CLI archive did not contain the expected code binary.${RESET}" >&2
 		return 1
 	fi
 
@@ -133,7 +133,4 @@ install_vscode_cli() {
 	else
 		echo -e "${BOLD}${GREEN}VS Code CLI installed at ${cli_bin_dir}/code.${RESET}"
 	fi
-
-	trap - RETURN
-	rm -rf "$tmp_dir" "$archive_path"
 }
