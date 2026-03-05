@@ -49,11 +49,11 @@ if ! grep -qF "$VSCODE_CLI_BLOCK_END" "$HOME/.bashrc"; then
 	echo "Smoke check failed: VS Code CLI managed block end marker missing in ~/.bashrc."
 	exit 1
 fi
-if ! grep -qF "alias code=\"$VSCODE_CLI_BIN\"" "$HOME/.bashrc"; then
+if ! grep -qF 'alias code="$HOME/.local/opt/vscode-cli/bin/code"' "$HOME/.bashrc"; then
 	echo "Smoke check failed: VS Code CLI alias line missing in ~/.bashrc."
 	exit 1
 fi
-if ! grep -q "export PATH=.*$HOME/.local/opt/vscode-cli/bin:\$PATH" "$HOME/.bashrc"; then
+if ! grep -q 'export PATH=.*\$HOME/.local/opt/vscode-cli/bin:\$PATH' "$HOME/.bashrc"; then
 	echo "Smoke check failed: VS Code CLI PATH prepend line missing in ~/.bashrc."
 	exit 1
 fi

@@ -26,7 +26,7 @@ vscode_cli_download_os() {
 
 configure_vscode_cli_shell_shortcut() {
 	local bashrc_path="$HOME/.bashrc"
-	local cli_bin_dir="$HOME/.local/opt/vscode-cli/bin"
+	local cli_bin_dir='$HOME/.local/opt/vscode-cli/bin'
 	local tmp_file
 
 	if ! touch "$bashrc_path"; then
@@ -43,9 +43,9 @@ configure_vscode_cli_shell_shortcut() {
 		echo -e "${BOLD}${YELLOW}Updating VS Code CLI shortcut block in bashrc...${RESET}"
 		tmp_file="$(mktemp "${TMPDIR:-/tmp}/bashrc.vscode-cli.XXXXXX")"
 		awk -v start="$VSCODE_CLI_BLOCK_START" -v end="$VSCODE_CLI_BLOCK_END" '
-			index($0, start) { skip = 1; next }
-			index($0, end)   { skip = 0; next }
-			!skip            { print }
+			$0 == start { skip = 1; next }
+			$0 == end   { skip = 0; next }
+			!skip       { print }
 		' "$bashrc_path" >"$tmp_file" || {
 			rm -f "$tmp_file"
 			return 1
