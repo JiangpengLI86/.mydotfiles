@@ -17,6 +17,7 @@ source ./setup_scripts/install_nerdfonts.sh      # For install_nerd_fonts() func
 source ./setup_scripts/install_yazi.sh           # For install_yazi() function
 source ./setup_scripts/install_neovim.sh         # For install_neovim() function
 source ./setup_scripts/install_tmux.sh           # For install_tmux() function
+source ./setup_scripts/install_vscode_cli.sh     # For install_vscode_cli() function
 source ./setup_scripts/install_miniconda.sh      # For install_miniconda() function
 source ./setup_scripts/config_bashrc.sh          # For config_bashrc() function
 
@@ -93,6 +94,9 @@ install_neovim "$USE_COPILOT"
 
 # Installation of Tmux ================================
 install_tmux
+
+# Installation of VS Code CLI ================================
+install_vscode_cli
 
 # Additional Configuration of .bashrc ================================
 config_bashrc
