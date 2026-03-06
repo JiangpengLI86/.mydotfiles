@@ -119,6 +119,17 @@ stage_label() {
 	esac
 }
 
+cleanup_case_resources() {
+	local container_name="$1"
+	local image_tag="$2"
+	local cleanup_images_flag="$3"
+
+	docker rm -f "$container_name" >/dev/null 2>&1 || true
+	if [ "$cleanup_images_flag" = true ]; then
+		docker image rm -f "${image_tag}" >/dev/null 2>&1 || true
+	fi
+}
+
 run_case_worker() {
 	local case_name="$1"
 	local dockerfile="$2"
@@ -136,6 +147,10 @@ run_case_worker() {
 	local outcome="pass"
 	local reason=""
 	local wait_output=""
+	local cleanup_cmd=""
+
+	printf -v cleanup_cmd 'cleanup_case_resources %q %q %q' "$container_name" "$image_tag" "$cleanup_images"
+	trap "$cleanup_cmd" EXIT
 
 	: >"$build_log"
 	: >"$run_log"
@@ -188,19 +203,19 @@ run_case_worker() {
 			docker rm -f "$container_name" >/dev/null 2>&1 || true
 		fi
 
-		if [ "$outcome" = "pass" ]; then
-			if [ "$expected_status" = "0" ] && [ "$run_status" != "0" ]; then
-				outcome="fail"
-				reason="unexpected_nonzero_exit"
-			elif [ "$expected_status" = "nonzero" ] && [ "$run_status" = "0" ]; then
-				outcome="fail"
-				reason="expected_nonzero_exit"
-			elif [ -n "$expected_pattern" ] && ! grep -Fq "$expected_pattern" "$run_log"; then
-				outcome="fail"
-				reason="missing_expected_pattern"
+			if [ "$outcome" = "pass" ]; then
+				if [ "$expected_status" = "0" ] && [ "$run_status" != "0" ]; then
+					outcome="fail"
+					reason="unexpected_nonzero_exit"
+				elif [ "$expected_status" = "nonzero" ] && [ "$run_status" = "0" ]; then
+					outcome="fail"
+					reason="expected_nonzero_exit"
+				elif [ -n "$expected_pattern" ] && ! grep -Fq "$expected_pattern" "$run_log"; then
+					outcome="fail"
+					reason="missing_expected_pattern"
+				fi
 			fi
 		fi
-	fi
 
 	if [ "$cleanup_images" = true ]; then
 		docker image rm -f "${image_tag}" >/dev/null 2>&1 || true
