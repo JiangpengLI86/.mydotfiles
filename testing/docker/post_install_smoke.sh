@@ -10,6 +10,8 @@ export PATH="$HOME/.local/bin:$PATH"
 VSCODE_CLI_BIN="$HOME/.local/opt/vscode-cli/bin/code"
 VSCODE_CLI_BLOCK_START="# >>> mydotfiles vscode cli block >>>"
 VSCODE_CLI_BLOCK_END="# <<< mydotfiles vscode cli block <<<"
+LAZYGIT_BLOCK_START="# >>> mydotfiles lazygit block >>>"
+LAZYGIT_BLOCK_END="# <<< mydotfiles lazygit block <<<"
 
 if ! command -v yazi >/dev/null 2>&1; then
 	echo "Smoke check failed: yazi is not on PATH."
@@ -22,6 +24,12 @@ if ! command -v tmux >/dev/null 2>&1; then
 	exit 1
 fi
 tmux -V
+
+if ! command -v lazygit >/dev/null 2>&1; then
+	echo "Smoke check failed: lazygit is not on PATH."
+	exit 1
+fi
+lazygit --version | head -n1
 
 # Exercise a real tmux server lifecycle in isolation from host sockets.
 TMUX_SOCKET="smoke_$$"
@@ -55,6 +63,19 @@ if ! grep -qF 'alias code="$HOME/.local/opt/vscode-cli/bin/code"' "$HOME/.bashrc
 fi
 if ! grep -q 'export PATH=.*\$HOME/.local/opt/vscode-cli/bin:\$PATH' "$HOME/.bashrc"; then
 	echo "Smoke check failed: VS Code CLI PATH prepend line missing in ~/.bashrc."
+	exit 1
+fi
+
+if ! grep -qF "$LAZYGIT_BLOCK_START" "$HOME/.bashrc"; then
+	echo "Smoke check failed: lazygit managed block start marker missing in ~/.bashrc."
+	exit 1
+fi
+if ! grep -qF "$LAZYGIT_BLOCK_END" "$HOME/.bashrc"; then
+	echo "Smoke check failed: lazygit managed block end marker missing in ~/.bashrc."
+	exit 1
+fi
+if ! grep -qF 'alias lg="$HOME/.local/bin/lazygit"' "$HOME/.bashrc"; then
+	echo "Smoke check failed: lazygit alias line missing in ~/.bashrc."
 	exit 1
 fi
 
