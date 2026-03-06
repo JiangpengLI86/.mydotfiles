@@ -212,10 +212,6 @@ run_case_worker() {
 		fi
 	fi
 
-	if [ "$cleanup_images" = true ]; then
-		docker image rm -f "${image_tag}" >/dev/null 2>&1 || true
-	fi
-
 	if [ "$outcome" = "pass" ]; then
 		printf 'complete-pass\n' >"$stage_file"
 	else
