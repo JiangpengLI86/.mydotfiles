@@ -58,9 +58,9 @@ configure_lazygit_shell_shortcut() {
 		echo -e "${BOLD}${YELLOW}Adding lazygit shortcut block to bashrc...${RESET}"
 	fi
 
-	cat >>"$bashrc_path" <<EOF
+cat >>"$bashrc_path" <<EOF
 $LAZYGIT_BLOCK_START
-alias lg="$lazygit_bin"
+alias lazygit="$lazygit_bin"
 $LAZYGIT_BLOCK_END
 EOF
 

@@ -45,7 +45,7 @@ Then it:
 8. Installs **lazygit** from the latest official GitHub release tarball:
    - downloads from `https://github.com/jesseduffield/lazygit/releases/latest/download/...`
    - installs/overwrites `~/.local/bin/lazygit`
-   - manages a dedicated `.bashrc` block with `alias lg="$HOME/.local/bin/lazygit"`
+   - manages a dedicated `.bashrc` block with `alias lazygit="$HOME/.local/bin/lazygit"`
 9. Installs **Neovim**:
    - apt (`ppa:neovim-ppa/unstable`) when root/sudo is available
    - otherwise Linux prebuilt into `~/.local/opt/nvim` + `~/.local/bin/nvim`
@@ -102,7 +102,7 @@ Notes:
   - `tmux -V` and isolated tmux server lifecycle
   - `~/.local/opt/vscode-cli/bin/code --version`
   - VS Code CLI managed block markers + alias/PATH lines in `~/.bashrc`
-  - lazygit managed block markers + `alias lg="$HOME/.local/bin/lazygit"` in `~/.bashrc`
+  - lazygit managed block markers + `alias lazygit="$HOME/.local/bin/lazygit"` in `~/.bashrc`
   - Neovim headless checks for `:messages`, `:NoiceLog`, and `:MasonLog`
 - Neovim smoke checks run `Lazy! sync` first because first-run LazyVim plugin installation can take time.
 

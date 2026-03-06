@@ -74,7 +74,7 @@ if ! grep -qF "$LAZYGIT_BLOCK_END" "$HOME/.bashrc"; then
 	echo "Smoke check failed: lazygit managed block end marker missing in ~/.bashrc."
 	exit 1
 fi
-if ! grep -qF 'alias lg="$HOME/.local/bin/lazygit"' "$HOME/.bashrc"; then
+if ! grep -qF 'alias lazygit="$HOME/.local/bin/lazygit"' "$HOME/.bashrc"; then
 	echo "Smoke check failed: lazygit alias line missing in ~/.bashrc."
 	exit 1
 fi
