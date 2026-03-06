@@ -5,6 +5,7 @@ Personal Ubuntu/WSL dotfiles with an automated bootstrap script for:
 - Neovim (LazyVim-based)
 - tmux
 - yazi
+- lazygit
 
 ## Quick start
 
@@ -41,33 +42,37 @@ Then it:
    - falls back to source build from `~/.local/src/yazi` when needed
    - if a legacy source build exists at `/opt/yazi/target/release`, reuses it by linking `yazi`/`ya` into `~/.local/bin`
    - adds a `yy()` shell wrapper to preserve cwd after yazi exits
-8. Installs **Neovim**:
+8. Installs **lazygit** from the latest official GitHub release tarball:
+   - downloads from `https://github.com/jesseduffield/lazygit/releases/latest/download/...`
+   - installs/overwrites `~/.local/bin/lazygit`
+   - manages a dedicated `.bashrc` block with `alias lazygit="$HOME/.local/bin/lazygit"`
+9. Installs **Neovim**:
    - apt (`ppa:neovim-ppa/unstable`) when root/sudo is available
    - otherwise Linux prebuilt into `~/.local/opt/nvim` + `~/.local/bin/nvim`
    - auto-selects `neovim/neovim-releases` binaries on older glibc hosts for compatibility
-9. Ensures Node/npm is available for Mason:
+10. Ensures Node/npm is available for Mason:
    - installs `nvm` + latest LTS Node when needed
-10. Ensures `tree-sitter` CLI is available and new enough (>= `0.26.1`):
+11. Ensures `tree-sitter` CLI is available and new enough (>= `0.26.1`):
    - prefers existing install if compatible
    - tries apt package first
    - falls back to `cargo install tree-sitter-cli --locked --force`
    - isolates cargo target artifacts by local libc/arch to avoid cross-host cache reuse issues
    - removes incompatible cached Neovim parser `.so` files so they rebuild locally
-11. Installs **tmux**:
+12. Installs **tmux**:
    - apt when root/sudo is available
    - otherwise builds from source into `~/.local` (with local ncurses/libevent build if needed)
-12. Installs latest **VS Code CLI** from Microsoft download endpoint:
+13. Installs latest **VS Code CLI** from Microsoft download endpoint:
    - downloads `https://code.visualstudio.com/sha/download?build=stable&os=...`
    - installs/overwrites `~/.local/opt/vscode-cli/bin/code`
    - manages a dedicated `.bashrc` block with:
      - `alias code="$HOME/.local/opt/vscode-cli/bin/code"`
      - PATH-prepend for `~/.local/opt/vscode-cli/bin` so this managed CLI is preferred over system `code`
-13. Rewrites a managed block in `~/.bashrc`:
+14. Rewrites a managed block in `~/.bashrc`:
    - custom `PS1`
    - `set -o vi`
    - `export GPG_TTY=$(tty)`
    - starts `ssh-agent` if missing
-14. Runs GNU Stow for:
+15. Runs GNU Stow for:
    - `tmux`, `nvim`, `yazi`, `inputrc`, `condarc`
 
 ## Docker scenario tests
@@ -93,9 +98,11 @@ Notes:
 - Case 2 uses `SETUP_TEST_EXIT_AFTER_PREREQS=1` to validate the non-sudo missing-prereqs failure path quickly.
 - Cases 1 and 3 run full `setup.sh`, then run post-install smoke checks in `testing/docker/post_install_smoke.sh`:
   - `yazi --version`
+  - `lazygit --version`
   - `tmux -V` and isolated tmux server lifecycle
   - `~/.local/opt/vscode-cli/bin/code --version`
   - VS Code CLI managed block markers + alias/PATH lines in `~/.bashrc`
+  - lazygit managed block markers + `alias lazygit="$HOME/.local/bin/lazygit"` in `~/.bashrc`
   - Neovim headless checks for `:messages`, `:NoiceLog`, and `:MasonLog`
 - Neovim smoke checks run `Lazy! sync` first because first-run LazyVim plugin installation can take time.
 

@@ -15,6 +15,7 @@ source ./setup_scripts/help_messages.sh          # For usage() function
 source ./setup_scripts/install_basic_packages.sh # For install_packages() function
 source ./setup_scripts/install_nerdfonts.sh      # For install_nerd_fonts() function
 source ./setup_scripts/install_yazi.sh           # For install_yazi() function
+source ./setup_scripts/install_lazygit.sh        # For install_lazygit() function
 source ./setup_scripts/install_neovim.sh         # For install_neovim() function
 source ./setup_scripts/install_tmux.sh           # For install_tmux() function
 source ./setup_scripts/install_vscode_cli.sh     # For install_vscode_cli() function
@@ -88,6 +89,9 @@ install_nerd_fonts
 
 # Installation of Yazi ================================
 install_yazi
+
+# Installation of lazygit ================================
+install_lazygit
 
 # Installation of Neovim ================================
 install_neovim "$USE_COPILOT"
