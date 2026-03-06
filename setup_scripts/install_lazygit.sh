@@ -80,14 +80,20 @@ install_lazygit() {
 	local tmp_dir
 	local extracted_lazygit_path
 	local target_lazygit_path="$HOME/.local/bin/lazygit"
+	local install_tmp_path
 	local existing_lazygit_path
 	local installed_version
 
 	echo -e "${BOLD}${YELLOW}Installing lazygit...${RESET}"
 
-	if ! require_commands curl tar install uname mktemp grep head sha256sum awk; then
+	if ! require_commands curl tar install uname mktemp grep head sha256sum awk mv; then
 		echo -e "${BOLD}${RED}Missing essential tools for lazygit install.${RESET}" >&2
 		return 1
+	fi
+
+	if [ "${EUID:-$(id -u)}" -eq 0 ]; then
+		echo -e "${BOLD}${YELLOW}Warning: setup is running as root. For safety, prefer running setup.sh as a regular user.${RESET}"
+		echo -e "${BOLD}${YELLOW}If running as root intentionally (for example in Docker), ensure \$HOME/.local/bin is trusted.${RESET}"
 	fi
 
 	lazygit_arch="$(lazygit_download_arch)" || return 1
@@ -102,7 +108,7 @@ install_lazygit() {
 	archive_path="$(mktemp "${TMPDIR:-/tmp}/lazygit.XXXXXX.tar.gz")"
 	tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/lazygit.XXXXXX")"
 	checksum_file="$(mktemp "${TMPDIR:-/tmp}/lazygit-checksums.XXXXXX.txt")"
-	trap 'rm -rf "$tmp_dir" "$archive_path" "$checksum_file"' RETURN
+	trap 'rm -rf "$tmp_dir" "$archive_path" "$checksum_file" "$install_tmp_path"' RETURN
 
 	echo -e "${BOLD}${YELLOW}Downloading latest lazygit from ${download_url}${RESET}"
 	curl -fL "$download_url" -o "$archive_path"
@@ -132,7 +138,11 @@ install_lazygit() {
 	if [ -n "$existing_lazygit_path" ]; then
 		echo -e "${BOLD}${YELLOW}Existing lazygit detected at ${existing_lazygit_path}; overwriting managed binary at ${target_lazygit_path}.${RESET}"
 	fi
-	install -m 0755 "$extracted_lazygit_path" "$target_lazygit_path"
+	# Install to a temporary file in the destination directory, then atomically
+	# replace the target path. This avoids following a pre-existing symlink.
+	install_tmp_path="$(mktemp "${HOME}/.local/bin/.lazygit.XXXXXX")"
+	install -m 0755 "$extracted_lazygit_path" "$install_tmp_path"
+	mv -fT "$install_tmp_path" "$target_lazygit_path"
 
 	configure_lazygit_shell_shortcut || return 1
 
