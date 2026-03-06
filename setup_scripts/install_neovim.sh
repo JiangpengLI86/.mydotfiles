@@ -455,8 +455,10 @@ apt_update_with_neovim_ppa_recovery() {
 	if printf '%s\n' "$update_output" | grep -Eq "NO_PUBKEY[[:space:]]+${ppa_key_id}|EXPKEYSIG[[:space:]]+${ppa_key_id}"; then
 		echo -e "${BOLD}${YELLOW}Detected Neovim PPA signing-key issue (${ppa_key_id}). Retrying after PPA refresh...${RESET}"
 		repair_neovim_ppa_signature
-		$SUDO apt-get update
-		return 0
+		if $SUDO apt-get update; then
+			return 0
+		fi
+		return 1
 	fi
 
 	return 1
