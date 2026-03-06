@@ -434,10 +434,25 @@ neovim_ppa_is_configured() {
 	grep -Rq "ppa.launchpadcontent.net/neovim-ppa/unstable" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null
 }
 
+remove_neovim_ppa_source_files() {
+	local source_dir="/etc/apt/sources.list.d"
+	local ppa_pattern="ppa.launchpadcontent.net/neovim-ppa/unstable"
+	local source_files=()
+	local source_file
+
+	while IFS= read -r source_file; do
+		source_files+=("$source_file")
+	done < <($SUDO grep -Rls "$ppa_pattern" "$source_dir" 2>/dev/null || true)
+
+	if [ "${#source_files[@]}" -gt 0 ]; then
+		$SUDO rm -f "${source_files[@]}"
+	fi
+}
+
 repair_neovim_ppa_signature() {
 	echo -e "${BOLD}${YELLOW}Repairing Neovim PPA signing key by re-adding the PPA...${RESET}"
 	$SUDO add-apt-repository -y -r ppa:neovim-ppa/unstable >/dev/null 2>&1 || true
-	$SUDO rm -f /etc/apt/sources.list.d/neovim-ppa-ubuntu-unstable*.list
+	remove_neovim_ppa_source_files
 	$SUDO add-apt-repository -y ppa:neovim-ppa/unstable
 }
 
