@@ -71,6 +71,11 @@ EOF
 install_lazygit() {
 	local lazygit_arch
 	local download_url
+	local checksum_url
+	local checksum_file
+	local archive_name
+	local expected_checksum
+	local actual_checksum
 	local archive_path
 	local tmp_dir
 	local extracted_lazygit_path
@@ -80,7 +85,7 @@ install_lazygit() {
 
 	echo -e "${BOLD}${YELLOW}Installing lazygit...${RESET}"
 
-	if ! require_commands curl tar install uname mktemp grep sed head; then
+	if ! require_commands curl tar install uname mktemp grep head sha256sum awk; then
 		echo -e "${BOLD}${RED}Missing essential tools for lazygit install.${RESET}" >&2
 		return 1
 	fi
@@ -91,13 +96,29 @@ install_lazygit() {
 		echo -e "${BOLD}${RED}Unable to resolve latest lazygit download URL.${RESET}" >&2
 		return 1
 	fi
+	checksum_url="${download_url%/*}/checksums.txt"
+	archive_name="${download_url##*/}"
 
 	archive_path="$(mktemp "${TMPDIR:-/tmp}/lazygit.XXXXXX.tar.gz")"
 	tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/lazygit.XXXXXX")"
-	trap 'rm -rf "$tmp_dir" "$archive_path"' RETURN
+	checksum_file="$(mktemp "${TMPDIR:-/tmp}/lazygit-checksums.XXXXXX.txt")"
+	trap 'rm -rf "$tmp_dir" "$archive_path" "$checksum_file"' RETURN
 
 	echo -e "${BOLD}${YELLOW}Downloading latest lazygit from ${download_url}${RESET}"
 	curl -fL "$download_url" -o "$archive_path"
+
+	echo -e "${BOLD}${YELLOW}Verifying lazygit archive checksum...${RESET}"
+	curl -fL "$checksum_url" -o "$checksum_file"
+	expected_checksum="$(awk -v filename="$archive_name" '$NF == filename { print $1; exit }' "$checksum_file")"
+	if [ -z "$expected_checksum" ]; then
+		echo -e "${BOLD}${RED}Failed to find checksum for ${archive_name} in upstream checksums.txt.${RESET}" >&2
+		return 1
+	fi
+	actual_checksum="$(sha256sum "$archive_path" | awk '{print $1}')"
+	if [ "$actual_checksum" != "$expected_checksum" ]; then
+		echo -e "${BOLD}${RED}Checksum verification failed for downloaded lazygit archive.${RESET}" >&2
+		return 1
+	fi
 
 	tar -xzf "$archive_path" -C "$tmp_dir" lazygit
 	extracted_lazygit_path="$tmp_dir/lazygit"
