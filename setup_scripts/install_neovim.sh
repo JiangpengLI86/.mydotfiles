@@ -438,11 +438,8 @@ remove_neovim_ppa_source_files() {
 	local source_dir="/etc/apt/sources.list.d"
 	local ppa_pattern="ppa.launchpadcontent.net/neovim-ppa/unstable"
 	local source_files=()
-	local source_file
 
-	while IFS= read -r source_file; do
-		source_files+=("$source_file")
-	done < <($SUDO grep -Rls "$ppa_pattern" "$source_dir" 2>/dev/null || true)
+	mapfile -t source_files < <($SUDO grep -Rls "$ppa_pattern" "$source_dir" 2>/dev/null || true)
 
 	if [ "${#source_files[@]}" -gt 0 ]; then
 		$SUDO rm -f "${source_files[@]}"
