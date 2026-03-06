@@ -430,6 +430,38 @@ configure_copilot_flag() {
 	fi
 }
 
+neovim_ppa_is_configured() {
+	grep -Rq "ppa.launchpadcontent.net/neovim-ppa/unstable" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null
+}
+
+repair_neovim_ppa_signature() {
+	echo -e "${BOLD}${YELLOW}Repairing Neovim PPA signing key by re-adding the PPA...${RESET}"
+	$SUDO add-apt-repository -y -r ppa:neovim-ppa/unstable >/dev/null 2>&1 || true
+	$SUDO rm -f /etc/apt/sources.list.d/neovim-ppa-ubuntu-unstable*.list
+	$SUDO add-apt-repository -y ppa:neovim-ppa/unstable
+}
+
+apt_update_with_neovim_ppa_recovery() {
+	local ppa_key_id="55F96FCF8231B6DD"
+	local update_output=""
+
+	if update_output="$($SUDO apt-get update 2>&1)"; then
+		printf '%s\n' "$update_output"
+		return 0
+	fi
+
+	printf '%s\n' "$update_output"
+
+	if printf '%s\n' "$update_output" | grep -Eq "NO_PUBKEY[[:space:]]+${ppa_key_id}|EXPKEYSIG[[:space:]]+${ppa_key_id}"; then
+		echo -e "${BOLD}${YELLOW}Detected Neovim PPA signing-key issue (${ppa_key_id}). Retrying after PPA refresh...${RESET}"
+		repair_neovim_ppa_signature
+		$SUDO apt-get update
+		return 0
+	fi
+
+	return 1
+}
+
 # Install the neovim text editor
 install_neovim() {
 	local use_copilot="$1"
@@ -461,10 +493,10 @@ install_neovim() {
 
 		install_packages "software-properties-common"
 
-		if ! grep -Rq "ppa.launchpadcontent.net/neovim-ppa/unstable" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
+		if ! neovim_ppa_is_configured; then
 			$SUDO add-apt-repository -y ppa:neovim-ppa/unstable
 		fi
-		$SUDO apt-get update
+		apt_update_with_neovim_ppa_recovery
 
 		echo -e "${BOLD}${YELLOW}Installing neovim text editor...${RESET}"
 		$SUDO apt-get install -y neovim
