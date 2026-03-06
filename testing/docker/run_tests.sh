@@ -146,7 +146,6 @@ run_case_worker() {
 	local run_status="0"
 	local outcome="pass"
 	local reason=""
-	local wait_output=""
 	local cleanup_cmd=""
 
 	printf -v cleanup_cmd 'cleanup_case_resources %q %q %q' "$container_name" "$image_tag" "$cleanup_images"
@@ -177,45 +176,41 @@ run_case_worker() {
 			reason="container_create_failed"
 		else
 			set +e
-			docker start "$container_name" >/dev/null 2>>"$live_log"
-			local start_status=$?
-			if [ "$start_status" -ne 0 ]; then
+			docker start -a "$container_name" 2>&1 | tee -a "$run_log" "$live_log" >/dev/null
+			local start_status=${PIPESTATUS[0]}
+			local container_state=""
+			container_state="$(docker inspect -f '{{.State.Status}}' "$container_name" 2>>"$live_log")"
+			local inspect_status=$?
+			set -e
+
+			if [ "$inspect_status" -ne 0 ]; then
+				outcome="fail"
+				reason="container_wait_failed"
+				run_status="unknown"
+			elif [ "$container_state" != "exited" ]; then
 				outcome="fail"
 				reason="container_start_failed"
+				run_status="unknown"
 			else
-				docker logs -f "$container_name" 2>&1 | tee -a "$run_log" "$live_log" >/dev/null &
-				local logs_pid=$!
-
-				wait_output="$(docker wait "$container_name" 2>>"$live_log")"
-				local wait_status=$?
-				if [ "$wait_status" -ne 0 ]; then
-					outcome="fail"
-					reason="container_wait_failed"
-					run_status="unknown"
-				else
-					run_status="$(printf '%s' "$wait_output" | tail -n1 | tr -d '\r')"
-				fi
-
-				wait "$logs_pid" >/dev/null 2>&1 || true
+				run_status="$(printf '%s' "$start_status" | tr -d '\r')"
 			fi
-			set -e
 
 			docker rm -f "$container_name" >/dev/null 2>&1 || true
 		fi
 
-			if [ "$outcome" = "pass" ]; then
-				if [ "$expected_status" = "0" ] && [ "$run_status" != "0" ]; then
-					outcome="fail"
-					reason="unexpected_nonzero_exit"
-				elif [ "$expected_status" = "nonzero" ] && [ "$run_status" = "0" ]; then
-					outcome="fail"
-					reason="expected_nonzero_exit"
-				elif [ -n "$expected_pattern" ] && ! grep -Fq "$expected_pattern" "$run_log"; then
-					outcome="fail"
-					reason="missing_expected_pattern"
-				fi
+		if [ "$outcome" = "pass" ]; then
+			if [ "$expected_status" = "0" ] && [ "$run_status" != "0" ]; then
+				outcome="fail"
+				reason="unexpected_nonzero_exit"
+			elif [ "$expected_status" = "nonzero" ] && [ "$run_status" = "0" ]; then
+				outcome="fail"
+				reason="expected_nonzero_exit"
+			elif [ -n "$expected_pattern" ] && ! grep -Fq "$expected_pattern" "$run_log"; then
+				outcome="fail"
+				reason="missing_expected_pattern"
 			fi
 		fi
+	fi
 
 	if [ "$cleanup_images" = true ]; then
 		docker image rm -f "${image_tag}" >/dev/null 2>&1 || true
