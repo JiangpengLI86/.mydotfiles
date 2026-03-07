@@ -52,6 +52,7 @@ Then it:
    - auto-selects `neovim/neovim-releases` binaries on older glibc hosts for compatibility
 10. Ensures Node/npm is available for Mason:
    - installs `nvm` + latest LTS Node when needed
+   - manages a dedicated inner `~/.bashrc` block that initializes `NVM_DIR`, `nvm.sh`, and `bash_completion` for fresh shells
 11. Ensures `tree-sitter` CLI is available and new enough (>= `0.26.1`):
    - prefers existing install if compatible
    - tries apt package first
@@ -102,6 +103,7 @@ Notes:
   - `tmux -V` and isolated tmux server lifecycle
   - `~/.local/opt/vscode-cli/bin/code --version`
   - top-level mydotfiles-managed `~/.bashrc` block markers
+  - `nvm` managed block markers and `npm` availability from a fresh interactive shell
   - VS Code CLI managed block markers + alias/PATH lines in `~/.bashrc`
   - lazygit managed block markers + `alias lazygit="$HOME/.local/bin/lazygit"` in `~/.bashrc`
   - Neovim headless checks for `:messages`, `:NoiceLog`, and `:MasonLog`

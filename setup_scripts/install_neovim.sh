@@ -1,5 +1,27 @@
 source ./setup_scripts/install_basic_packages.sh # For helpers and install_packages functions
 
+NVM_BLOCK_START="# >>> mydotfiles nvm block >>>"
+NVM_BLOCK_END="# <<< mydotfiles nvm block <<<"
+
+configure_nvm_shell_init() {
+	local bashrc_path="$HOME/.bashrc"
+	local nvm_dir='$HOME/.nvm'
+	local block_content
+
+	block_content=$(cat <<EOF
+$NVM_BLOCK_START
+export NVM_DIR="$nvm_dir"
+[ -s "$nvm_dir/nvm.sh" ] && . "$nvm_dir/nvm.sh"
+[ -s "$nvm_dir/bash_completion" ] && . "$nvm_dir/bash_completion"
+$NVM_BLOCK_END
+EOF
+)
+
+	upsert_mydotfiles_bashrc_block "$bashrc_path" "$NVM_BLOCK_START" "$NVM_BLOCK_END" "$block_content" "nvm shell initialization" || return 1
+	echo -e "${BOLD}${GREEN}nvm shell initialization is configured in bashrc.${RESET}"
+	return 0
+}
+
 install_nvm_and_node() {
 	local nvm_version="v0.40.1"
 	local had_nounset=false
@@ -533,6 +555,9 @@ install_neovim() {
 	fi
 
 	ensure_npm_for_mason
+	if [ -s "$HOME/.nvm/nvm.sh" ]; then
+		configure_nvm_shell_init || return 1
+	fi
 	install_tree_sitter_cli
 
 	echo -e "${BOLD}${GREEN}Neovim installed successfully.${RESET}"
