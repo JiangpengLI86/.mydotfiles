@@ -5,29 +5,29 @@ YAZI_WRAPPER_END="# <<< yazi shell wrapper <<<"
 
 yazi_shell_wrapper=$(
 	cat <<'EOF'
-    # >>> yazi shell wrapper >>>
-    function yy() {
-        local yazi_cmd
-        local tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
-        if command -v yazi >/dev/null 2>&1; then
-            yazi_cmd="$(command -v yazi)"
-        elif [ -x "$HOME/.local/bin/yazi" ]; then
-            yazi_cmd="$HOME/.local/bin/yazi"
-        elif [ -x "/opt/yazi/target/release/yazi" ]; then
-            yazi_cmd="/opt/yazi/target/release/yazi"
-        else
-            echo "yy: yazi is not installed or not on PATH."
-            rm -f -- "$tmp"
-            return 127
-        fi
+# >>> yazi shell wrapper >>>
+function yy() {
+	local yazi_cmd
+	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
+	if command -v yazi >/dev/null 2>&1; then
+		yazi_cmd="$(command -v yazi)"
+	elif [ -x "$HOME/.local/bin/yazi" ]; then
+		yazi_cmd="$HOME/.local/bin/yazi"
+	elif [ -x "/opt/yazi/target/release/yazi" ]; then
+		yazi_cmd="/opt/yazi/target/release/yazi"
+	else
+		echo "yy: yazi is not installed or not on PATH."
+		rm -f -- "$tmp"
+		return 127
+	fi
 
-        "$yazi_cmd" "$@" --cwd-file="$tmp"
-        if cwd="$(cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
-            builtin cd -- "$cwd"
-        fi
-        rm -f -- "$tmp"
-    }
-    # <<< yazi shell wrapper <<<
+	"$yazi_cmd" "$@" --cwd-file="$tmp"
+	if cwd="$(cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+		builtin cd -- "$cwd"
+	fi
+	rm -f -- "$tmp"
+}
+# <<< yazi shell wrapper <<<
 EOF
 )
 

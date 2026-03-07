@@ -123,8 +123,8 @@ upsert_mydotfiles_bashrc_block() {
 	if grep -qF "$MYDOTFILES_BASHRC_MANAGED_START" "$bashrc_path" 2>/dev/null; then
 		awk -v start="$MYDOTFILES_BASHRC_MANAGED_START" -v end="$MYDOTFILES_BASHRC_MANAGED_END" \
 			-v prefix="$prefix_file" -v body="$outer_body_file" -v suffix="$suffix_file" '
-			$0 == start { section = "body"; next }
-			$0 == end { section = "suffix"; next }
+			index($0, start) == 1 { section = "body"; next }
+			index($0, end) == 1 { section = "suffix"; next }
 			section == "" { print > prefix; next }
 			section == "body" { print > body; next }
 			{ print > suffix }
@@ -160,7 +160,7 @@ upsert_mydotfiles_bashrc_block() {
 
 	{
 		cat "$prefix_clean_file"
-		if [ -s "$prefix_clean_file" ] && [ -s "$outer_body_clean_file" ]; then
+		if [ -s "$prefix_clean_file" ]; then
 			printf '\n'
 		fi
 		printf '%s\n' "$MYDOTFILES_BASHRC_MANAGED_START"

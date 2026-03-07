@@ -1,8 +1,8 @@
 # Add some additional configuration to the .bashrc file
 config_bashrc() {
 	local bashrc="$HOME/.bashrc"
-	local start_marker="# >>> mydotfiles shell defaults block >>>"
-	local end_marker="# <<< mydotfiles shell defaults block <<<"
+	local start_marker="# >>> mydotfiles managed block >>>"
+	local end_marker="# <<< mydotfiles managed block <<<"
 	local block_content
 
 	local new_ps1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\e[38;5;195m\]\w\n\[\033[00m\]\$ '
