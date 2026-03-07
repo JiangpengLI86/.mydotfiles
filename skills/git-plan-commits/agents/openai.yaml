@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan Git Commits"
+  short_description: "Plan split commits and draft messages"
+  default_prompt: "Use $git-plan-commits to review my changes, split them into sensible commits, and prepare commit messages without pushing."
