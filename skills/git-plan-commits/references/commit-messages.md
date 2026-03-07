@@ -37,6 +37,7 @@ Keep the body factual. Avoid repeating obvious diff details line by line.
 
 ## Signing Rule
 
+- Always use `git commit --signoff` to add a `Signed-off-by:` trailer.
 - Respect the repository or user default for `commit.gpgsign`; do not override it with `--no-gpg-sign`.
 - If signing is disabled by default, commit normally.
 - If signing is enabled by default, try the commit with the default signing behavior intact.
