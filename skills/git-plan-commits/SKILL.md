@@ -33,7 +33,7 @@ Plan clean commit boundaries, draft strong commit messages, and create local com
    - Use `git commit --signoff` by default so the created commits include the user's sign-off trailer.
    - If signing is not enabled by default, proceed normally with `git commit --signoff`.
    - If signing is enabled by default, keep the default signing behavior and try `git commit --signoff` without forcing `--no-gpg-sign`.
-   - If commit signing prompts for a GPG password or requires an interactive pinentry flow the agent cannot complete, stop and print the exact `git commit --signoff ...` command for the user to run manually.
+   - If commit signing prompts for a GPG password or requires an interactive pinentry flow the agent cannot complete, cancel the blocked `git commit` process first, then print the exact `git commit --signoff ...` command for the user to run manually.
    - Never ask the user to paste a GPG password, passphrase, or private-key secret into chat.
    - Do not force `-S` when the repo does not already sign by default.
 
@@ -56,7 +56,7 @@ Plan clean commit boundaries, draft strong commit messages, and create local com
   - whether repo-default GPG signing is expected to run or a manual commit command may be needed
 - After execution, report:
   - created commit titles in order
-  - whether repo-default GPG signing was used or the manual command was handed off to the user
+  - whether repo-default GPG signing was used or the blocked commit was canceled and the manual command was handed off to the user
   - confirmation that nothing was pushed
 
 ## Guardrails
