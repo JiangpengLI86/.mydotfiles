@@ -1,6 +1,6 @@
 ---
 name: git-plan-commits
-description: Plan and create local git commits from an existing worktree. Use when asked to commit changes, split a mixed diff into readable commits, draft commit titles and bodies, or decide whether the repo's default GPG signing should be used or bypassed. Works across Codex, Gemini, Claude Code, and similar agents because it relies on portable git workflow rather than product-specific features.
+description: Plan and create local git commits from an existing worktree. Use when asked to commit changes, split a mixed diff into readable commits, draft commit titles and bodies, or respect the repo's default GPG signing behavior while committing. Works across Codex, Gemini, Claude Code, and similar agents because it relies on portable git workflow rather than product-specific features.
 ---
 
 # Git Plan Commits
@@ -30,9 +30,11 @@ Plan clean commit boundaries, draft strong commit messages, and create local com
 
 4. Check the repository's signing defaults before committing.
    - Inspect inherited git config for `commit.gpgsign`.
-   - If signing is not enabled by default, use plain `git commit`.
-   - If signing is enabled by default, use `git commit --no-gpg-sign` unless the user explicitly asked for signed commits.
-   - If the user explicitly asked for signed commits and the key needs a password, ask for the password instead of silently bypassing signing.
+   - Use `git commit --signoff` by default so the created commits include the user's sign-off trailer.
+   - If signing is not enabled by default, proceed normally with `git commit --signoff`.
+   - If signing is enabled by default, keep the default signing behavior and try `git commit --signoff` without forcing `--no-gpg-sign`.
+   - If commit signing prompts for a GPG password or requires an interactive pinentry flow the agent cannot complete, stop and print the exact `git commit --signoff ...` command for the user to run manually.
+   - Never ask the user to paste a GPG password, passphrase, or private-key secret into chat.
    - Do not force `-S` when the repo does not already sign by default.
 
 5. Create the commits in reviewable order.
@@ -51,10 +53,10 @@ Plan clean commit boundaries, draft strong commit messages, and create local com
   - commit title
   - one-line scope summary
   - whether a body is needed
-  - whether signing will be bypassed with `--no-gpg-sign`
+  - whether repo-default GPG signing is expected to run or a manual commit command may be needed
 - After execution, report:
   - created commit titles in order
-  - whether signing was preserved or bypassed
+  - whether repo-default GPG signing was used or the manual command was handed off to the user
   - confirmation that nothing was pushed
 
 ## Guardrails
