@@ -41,17 +41,18 @@ Then it:
    - prefers latest official **musl** prebuilt release into `~/.local/bin` for better libc compatibility
    - falls back to source build from `~/.local/src/yazi` when needed
    - if a legacy source build exists at `/opt/yazi/target/release`, reuses it by linking `yazi`/`ya` into `~/.local/bin`
-   - adds a `yy()` shell wrapper to preserve cwd after yazi exits
+   - adds a `yy()` shell wrapper to preserve cwd after yazi exits inside the shared mydotfiles-managed `~/.bashrc` section
 8. Installs **lazygit** from the latest official GitHub release tarball:
    - downloads from `https://github.com/jesseduffield/lazygit/releases/latest/download/...`
    - installs/overwrites `~/.local/bin/lazygit`
-   - manages a dedicated `.bashrc` block with `alias lazygit="$HOME/.local/bin/lazygit"`
+   - manages a dedicated inner block inside the shared mydotfiles-managed `~/.bashrc` section with `alias lazygit="$HOME/.local/bin/lazygit"`
 9. Installs **Neovim**:
    - apt (`ppa:neovim-ppa/unstable`) when root/sudo is available
    - otherwise Linux prebuilt into `~/.local/opt/nvim` + `~/.local/bin/nvim`
    - auto-selects `neovim/neovim-releases` binaries on older glibc hosts for compatibility
 10. Ensures Node/npm is available for Mason:
    - installs `nvm` + latest LTS Node when needed
+   - manages a dedicated inner `~/.bashrc` block that initializes `NVM_DIR`, `nvm.sh`, and `bash_completion` for fresh shells
 11. Ensures `tree-sitter` CLI is available and new enough (>= `0.26.1`):
    - prefers existing install if compatible
    - tries apt package first
@@ -64,10 +65,10 @@ Then it:
 13. Installs latest **VS Code CLI** from Microsoft download endpoint:
    - downloads `https://code.visualstudio.com/sha/download?build=stable&os=...`
    - installs/overwrites `~/.local/opt/vscode-cli/bin/code`
-   - manages a dedicated `.bashrc` block with:
+   - manages a dedicated inner block inside the shared mydotfiles-managed `~/.bashrc` section with:
      - `alias code="$HOME/.local/opt/vscode-cli/bin/code"`
      - PATH-prepend for `~/.local/opt/vscode-cli/bin` so this managed CLI is preferred over system `code`
-14. Rewrites a managed block in `~/.bashrc`:
+14. Rewrites the shell-defaults inner block in the shared mydotfiles-managed section of `~/.bashrc`:
    - custom `PS1`
    - `set -o vi`
    - `export GPG_TTY=$(tty)`
@@ -101,6 +102,8 @@ Notes:
   - `lazygit --version`
   - `tmux -V` and isolated tmux server lifecycle
   - `~/.local/opt/vscode-cli/bin/code --version`
+  - top-level mydotfiles-managed `~/.bashrc` block markers
+  - `nvm` managed block markers and `npm` availability from a fresh interactive shell
   - VS Code CLI managed block markers + alias/PATH lines in `~/.bashrc`
   - lazygit managed block markers + `alias lazygit="$HOME/.local/bin/lazygit"` in `~/.bashrc`
   - Neovim headless checks for `:messages`, `:NoiceLog`, and `:MasonLog`

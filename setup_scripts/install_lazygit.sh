@@ -30,39 +30,16 @@ lazygit_download_arch() {
 configure_lazygit_shell_shortcut() {
 	local bashrc_path="$HOME/.bashrc"
 	local lazygit_bin='$HOME/.local/bin/lazygit'
-	local tmp_file
+	local block_content
 
-	if ! touch "$bashrc_path"; then
-		echo -e "${BOLD}${RED}Unable to access ${bashrc_path} for lazygit shortcut configuration.${RESET}" >&2
-		return 1
-	fi
-
-	if [ ! -w "$bashrc_path" ]; then
-		echo -e "${BOLD}${RED}${bashrc_path} is not writable; cannot configure lazygit shortcut.${RESET}" >&2
-		return 1
-	fi
-
-	if grep -qF "$LAZYGIT_BLOCK_START" "$bashrc_path"; then
-		echo -e "${BOLD}${YELLOW}Updating lazygit shortcut block in bashrc...${RESET}"
-		tmp_file="$(mktemp "${TMPDIR:-/tmp}/bashrc.lazygit.XXXXXX")"
-		awk -v start="$LAZYGIT_BLOCK_START" -v end="$LAZYGIT_BLOCK_END" '
-			index($0, start) { skip = 1; next }
-			index($0, end)   { skip = 0; next }
-			!skip            { print }
-		' "$bashrc_path" >"$tmp_file" || {
-			rm -f "$tmp_file"
-			return 1
-		}
-		mv "$tmp_file" "$bashrc_path" || return 1
-	else
-		echo -e "${BOLD}${YELLOW}Adding lazygit shortcut block to bashrc...${RESET}"
-	fi
-
-cat >>"$bashrc_path" <<EOF
+	block_content=$(cat <<EOF
 $LAZYGIT_BLOCK_START
 alias lazygit="$lazygit_bin"
 $LAZYGIT_BLOCK_END
 EOF
+)
+
+	upsert_mydotfiles_bashrc_block "$bashrc_path" "$LAZYGIT_BLOCK_START" "$LAZYGIT_BLOCK_END" "$block_content" "lazygit shortcut block" || return 1
 
 	echo -e "${BOLD}${GREEN}lazygit shortcut block is configured in bashrc.${RESET}"
 	return 0
