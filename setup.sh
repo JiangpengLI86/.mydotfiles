@@ -13,6 +13,7 @@ STOW_TARGETS=("tmux" "nvim" "yazi" "inputrc" "condarc")
 source ./setup_scripts/ensure_sudo.sh            # For ensure_sudo() function
 source ./setup_scripts/help_messages.sh          # For usage() function
 source ./setup_scripts/install_basic_packages.sh # For install_packages() function
+source ./setup_scripts/bashrc_helpers.sh         # For managed .bashrc block helpers
 source ./setup_scripts/install_nerdfonts.sh      # For install_nerd_fonts() function
 source ./setup_scripts/install_yazi.sh           # For install_yazi() function
 source ./setup_scripts/install_lazygit.sh        # For install_lazygit() function

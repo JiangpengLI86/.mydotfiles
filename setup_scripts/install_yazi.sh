@@ -252,37 +252,7 @@ install_yazi_from_source() {
 
 add_yazi_shell_wrapper() {
 	local bashrc_path="$HOME/.bashrc"
-	local tmp_file
-
-	if ! touch "$bashrc_path"; then
-		echo -e "${BOLD}${RED}Unable to access ${bashrc_path} for yazi wrapper configuration.${RESET}"
-		return 1
-	fi
-
-	if [ ! -w "$bashrc_path" ]; then
-		echo -e "${BOLD}${RED}${bashrc_path} is not writable; cannot configure yazi shell wrapper.${RESET}"
-		return 1
-	fi
-
-	if grep -qF "$YAZI_WRAPPER_START" "$bashrc_path"; then
-		echo -e "${BOLD}${YELLOW}Updating yazi shell wrapper in bashrc...${RESET}"
-		tmp_file="$(mktemp "${TMPDIR:-/tmp}/bashrc.yazi.XXXXXX")"
-		awk -v start="$YAZI_WRAPPER_START" -v end="$YAZI_WRAPPER_END" '
-			index($0, start) { skip = 1; next }
-			index($0, end)   { skip = 0; next }
-			!skip            { print }
-		' "$bashrc_path" >"$tmp_file" || {
-			rm -f "$tmp_file"
-			return 1
-		}
-		mv "$tmp_file" "$bashrc_path" || return 1
-	else
-		echo -e "${BOLD}${YELLOW}Adding yazi shell wrapper to bashrc...${RESET}"
-	fi
-
-	echo "" >>"$bashrc_path" || return 1
-	echo "$yazi_shell_wrapper" >>"$bashrc_path" || return 1
-	echo "" >>"$bashrc_path" || return 1
+	upsert_mydotfiles_bashrc_block "$bashrc_path" "$YAZI_WRAPPER_START" "$YAZI_WRAPPER_END" "$yazi_shell_wrapper" "yazi shell wrapper" || return 1
 	echo -e "${BOLD}${GREEN}yazi shell wrapper is configured in bashrc.${RESET}"
 	return 0
 }

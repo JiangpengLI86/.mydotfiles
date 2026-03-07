@@ -27,36 +27,9 @@ vscode_cli_download_os() {
 configure_vscode_cli_shell_shortcut() {
 	local bashrc_path="$HOME/.bashrc"
 	local cli_bin_dir='$HOME/.local/opt/vscode-cli/bin'
-	local tmp_file
+	local block_content
 
-	if ! touch "$bashrc_path"; then
-		echo -e "${BOLD}${RED}Unable to access ${bashrc_path} for VS Code CLI shortcut configuration.${RESET}" >&2
-		return 1
-	fi
-
-	if [ ! -w "$bashrc_path" ]; then
-		echo -e "${BOLD}${RED}${bashrc_path} is not writable; cannot configure VS Code CLI shortcut.${RESET}" >&2
-		return 1
-	fi
-
-	if grep -qF "$VSCODE_CLI_BLOCK_START" "$bashrc_path"; then
-		echo -e "${BOLD}${YELLOW}Updating VS Code CLI shortcut block in bashrc...${RESET}"
-		tmp_file="$(mktemp "${TMPDIR:-/tmp}/bashrc.vscode-cli.XXXXXX")"
-		awk -v start="$VSCODE_CLI_BLOCK_START" -v end="$VSCODE_CLI_BLOCK_END" '
-			$0 == start { skip = 1; next }
-			$0 == end   { skip = 0; next }
-			!skip       { print }
-		' "$bashrc_path" >"$tmp_file" || {
-			rm -f "$tmp_file"
-			return 1
-		}
-		mv "$tmp_file" "$bashrc_path" || return 1
-	else
-		echo -e "${BOLD}${YELLOW}Adding VS Code CLI shortcut block to bashrc...${RESET}"
-	fi
-
-	cat >>"$bashrc_path" <<EOF
-
+	block_content=$(cat <<EOF
 $VSCODE_CLI_BLOCK_START
 # Prefer the mydotfiles-managed VS Code CLI over any system-provided code binary.
 if [ -d "$cli_bin_dir" ]; then
@@ -67,8 +40,10 @@ if [ -d "$cli_bin_dir" ]; then
 fi
 alias code="$cli_bin_dir/code"
 $VSCODE_CLI_BLOCK_END
-
 EOF
+)
+
+	upsert_mydotfiles_bashrc_block "$bashrc_path" "$VSCODE_CLI_BLOCK_START" "$VSCODE_CLI_BLOCK_END" "$block_content" "VS Code CLI shortcut block" || return 1
 
 	echo -e "${BOLD}${GREEN}VS Code CLI shortcut block is configured in bashrc.${RESET}"
 	return 0
