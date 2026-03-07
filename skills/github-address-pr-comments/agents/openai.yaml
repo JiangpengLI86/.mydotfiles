@@ -1,0 +1,4 @@
+interface:
+  display_name: "Address PR Comments"
+  short_description: "Triage review comments and stage replies"
+  default_prompt: "Use $github-address-pr-comments to fetch PR review comments, classify them, draft replies, and plan fixes before posting anything."
