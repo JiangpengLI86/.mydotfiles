@@ -297,7 +297,10 @@ install_tree_sitter_cli() {
 		local cargo_bin="$1"
 
 		# Keep cargo at highest precedence, even if nvm rewrites PATH later.
-		ensure_bashrc_line 'export PATH="$HOME/.cargo/bin:$PATH"'
+		# Must be at end of .bashrc so it prepends after any nvm init block.
+		touch ~/.bashrc
+		sed -i '/^export PATH="\$HOME\/\.cargo\/bin:\$PATH"$/d' ~/.bashrc
+		echo 'export PATH="$HOME/.cargo/bin:$PATH"' >>~/.bashrc
 		export PATH="$HOME/.cargo/bin:$PATH"
 
 		if [ -x "$cargo_bin" ]; then
