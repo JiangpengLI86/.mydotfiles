@@ -8,6 +8,8 @@ set -euo pipefail # Exit on errors, unset variables, and pipeline failures.
 USE_COPILOT=false
 BASIC_PACKAGES=("build-essential" "wget" "curl" "git" "python3" "python3-venv" "make" "stow" "fontconfig" "unzip" "tar" "bzip2" "xz-utils")
 STOW_TARGETS=("tmux" "nvim" "yazi" "inputrc" "condarc")
+FAILED_STEPS=()
+PASSED_STEPS=()
 
 # Import functions ================================
 source ./setup_scripts/ensure_sudo.sh            # For ensure_sudo() function
@@ -29,6 +31,35 @@ export GREEN='\e[32m'
 export YELLOW='\e[33m'
 export BOLD='\e[1m'
 export RESET='\e[0m' # Reset color and formatting
+
+# Run an independent install step, capturing failures without aborting ================================
+run_step() {
+	local step_name="$1"
+	shift
+	local rc=0
+	echo ""
+	echo -e "${BOLD}${YELLOW}--- Running: ${step_name} ---${RESET}"
+	# Run in a subshell with set -e explicitly active so errexit semantics are
+	# preserved inside the step (unguarded failures abort the step, not silently
+	# ignored as they would be if called inside a && / || list). set +e in the
+	# parent prevents a failing subshell from aborting the whole script.
+	set +e
+	( set -e; "$@" )
+	rc=$?
+	set -e
+	# Propagate signal-induced exits (exit code > 128) so Ctrl+C and other
+	# signals abort the whole script rather than silently continuing.
+	if [ "$rc" -gt 128 ]; then
+		exit "$rc"
+	fi
+	if [ "$rc" -eq 0 ]; then
+		PASSED_STEPS+=("$step_name")
+		echo -e "${BOLD}${GREEN}--- Passed: ${step_name} ---${RESET}"
+	else
+		FAILED_STEPS+=("$step_name")
+		echo -e "${BOLD}${RED}--- FAILED: ${step_name} (exit code $rc) ---${RESET}"
+	fi
+}
 
 # Check if the script is called in root directory of this project ================================
 if [[ $(basename "$PWD") != ".mydotfiles" ]]; then
@@ -71,8 +102,9 @@ if [ "${SETUP_TEST_EXIT_AFTER_PREREQS:-0}" = "1" ]; then
 fi
 
 # Ensure Rust stable toolchain is installed/updated for all source builds ================================
-echo -e "${BOLD}${YELLOW}Ensuring Rust stable toolchain...${RESET}"
-bash ./setup_scripts/update_rust_stable.sh --yes
+run_step "Rust toolchain" bash ./setup_scripts/update_rust_stable.sh --yes
+# Source cargo env regardless — if rust was already installed it works;
+# if the step failed, subsequent steps needing cargo will fail on their own.
 if [ -s "$HOME/.cargo/env" ]; then
 	# shellcheck source=/dev/null
 	source "$HOME/.cargo/env"
@@ -82,40 +114,49 @@ fi
 # Force cargo/rustc invocations in this setup run to use stable.
 export RUSTUP_TOOLCHAIN=stable
 
-# Installation of Miniconda ================================
-install_miniconda
+# Independent installations ================================
+run_step "Miniconda"     install_miniconda
+run_step "Nerd Fonts"    install_nerd_fonts
+run_step "Yazi"          install_yazi
+run_step "Lazygit"       install_lazygit
+run_step "Neovim"        install_neovim "$USE_COPILOT"
+run_step "Tmux"          install_tmux
+run_step "VS Code CLI"   install_vscode_cli
+run_step "Bashrc config" config_bashrc
 
-# Installation of nerdfonts ================================
-install_nerd_fonts
+# Stow the target directories ================================
+stow_dotfiles() {
+	if ! require_commands stow; then
+		echo -e "${BOLD}${RED}GNU Stow is required for dotfile symlinks. Install it first or rerun with sudo/root.${RESET}"
+		return 1
+	fi
+	echo -e "${BOLD}${YELLOW}Stowing directories...${RESET}"
+	for target in "${STOW_TARGETS[@]}"; do
+		stow "$target"
+	done
+	echo -e "${BOLD}${GREEN}Stowing completed!${RESET}"
+}
+run_step "GNU Stow symlinks" stow_dotfiles
 
-# Installation of Yazi ================================
-install_yazi
-
-# Installation of lazygit ================================
-install_lazygit
-
-# Installation of Neovim ================================
-install_neovim "$USE_COPILOT"
-
-# Installation of Tmux ================================
-install_tmux
-
-# Installation of VS Code CLI ================================
-install_vscode_cli
-
-# Additional Configuration of .bashrc ================================
-config_bashrc
-
-# Stow the targets directories ================================
-echo -e "${BOLD}${YELLOW}Stowing directories...${RESET}"
-if ! require_commands stow; then
-	echo -e "${BOLD}${RED}GNU Stow is required for dotfile symlinks. Install it first or rerun with sudo/root.${RESET}"
-	exit 1
+# Summary ================================
+echo ""
+echo -e "${BOLD}========== Setup Summary ==========${RESET}"
+if [ "${#PASSED_STEPS[@]}" -gt 0 ]; then
+	echo -e "${GREEN}Passed:${RESET}"
+	for step in "${PASSED_STEPS[@]}"; do
+		echo -e "  ${GREEN}✓${RESET} $step"
+	done
 fi
-
-for target in "${STOW_TARGETS[@]}"; do
-	stow "$target"
-done
-echo -e "${BOLD}${GREEN}Stowing completed!${RESET}"
-
-echo -e "${BOLD}${GREEN}Setup completed successfully!${RESET}"
+if [ "${#FAILED_STEPS[@]}" -gt 0 ]; then
+	echo ""
+	echo -e "${RED}Failed:${RESET}"
+	for step in "${FAILED_STEPS[@]}"; do
+		echo -e "  ${RED}✗${RESET} $step"
+	done
+	echo ""
+	echo -e "${BOLD}${RED}Setup completed with ${#FAILED_STEPS[@]} failure(s).${RESET}"
+	exit 1
+else
+	echo ""
+	echo -e "${BOLD}${GREEN}Setup completed successfully!${RESET}"
+fi
