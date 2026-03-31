@@ -297,6 +297,7 @@ install_tree_sitter_cli() {
 		local cargo_bin="$1"
 
 		# Keep cargo at highest precedence, even if nvm rewrites PATH later.
+		# Must be at end of .bashrc so it prepends after any nvm init block.
 		touch ~/.bashrc
 		sed -i '/^export PATH="\$HOME\/\.cargo\/bin:\$PATH"$/d' ~/.bashrc
 		echo 'export PATH="$HOME/.cargo/bin:$PATH"' >>~/.bashrc
@@ -335,17 +336,15 @@ install_tree_sitter_cli() {
 		install_packages "tree-sitter-cli"
 		if command -v tree-sitter >/dev/null 2>&1; then
 			local apt_tree_sitter
+			local apt_tree_sitter_version
 			apt_tree_sitter="$(command -v tree-sitter)"
-			if tree_sitter_meets_minimum "$apt_tree_sitter"; then
-				local apt_tree_sitter_version
-				apt_tree_sitter_version="$(get_tree_sitter_version "$apt_tree_sitter")"
+			apt_tree_sitter_version="$(get_tree_sitter_version "$apt_tree_sitter" || true)"
+			if [ -n "$apt_tree_sitter_version" ] && version_gte "$apt_tree_sitter_version" "$min_tree_sitter_version"; then
 				echo -e "${BOLD}${GREEN} tree-sitter CLI installed via apt (version ${apt_tree_sitter_version}).${RESET}"
 				return 0
 			fi
-			local apt_detected_version
-			apt_detected_version="$(get_tree_sitter_version "$apt_tree_sitter" || true)"
-			if [ -n "$apt_detected_version" ]; then
-				echo -e "${BOLD}${YELLOW} apt tree-sitter version ${apt_detected_version} is below required ${min_tree_sitter_version}; switching to cargo build.${RESET}"
+			if [ -n "$apt_tree_sitter_version" ]; then
+				echo -e "${BOLD}${YELLOW} apt tree-sitter version ${apt_tree_sitter_version} is below required ${min_tree_sitter_version}; switching to cargo build.${RESET}"
 			else
 				echo -e "${BOLD}${YELLOW} apt tree-sitter binary is not runnable; switching to cargo build.${RESET}"
 			fi
@@ -440,14 +439,12 @@ configure_copilot_flag() {
 	local use_copilot="$1"
 	local copilot_flag='export ENABLE_COPILOT=1'
 
-	touch ~/.bashrc
-	# Clear only the exact managed flag to keep setup idempotent.
-	sed -i '/^export ENABLE_COPILOT=1$/d' ~/.bashrc
-
 	if [ "$use_copilot" = true ]; then
-		echo "$copilot_flag" >>~/.bashrc
+		ensure_bashrc_line "$copilot_flag"
 		echo -e "${BOLD}${YELLOW} Copilot support enabled for Neovim.${RESET}"
 	else
+		touch ~/.bashrc
+		sed -i '/^export ENABLE_COPILOT=1$/d' ~/.bashrc
 		echo -e "${BOLD}${YELLOW} Copilot support disabled for Neovim.${RESET}"
 	fi
 }
