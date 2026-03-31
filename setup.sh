@@ -47,6 +47,11 @@ run_step() {
 	( set -e; "$@" )
 	rc=$?
 	set -e
+	# Propagate signal-induced exits (exit code > 128) so Ctrl+C and other
+	# signals abort the whole script rather than silently continuing.
+	if [ "$rc" -gt 128 ]; then
+		exit "$rc"
+	fi
 	if [ "$rc" -eq 0 ]; then
 		PASSED_STEPS+=("$step_name")
 		echo -e "${BOLD}${GREEN}--- Passed: ${step_name} ---${RESET}"
