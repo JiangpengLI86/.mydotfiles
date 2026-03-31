@@ -77,10 +77,6 @@ resolve_yazi_bins() {
 		return 1
 	fi
 
-	if [ ! -x "$yazi_bin" ] || [ ! -x "$ya_bin" ]; then
-		return 1
-	fi
-
 	echo "$yazi_bin|$ya_bin"
 	return 0
 }
