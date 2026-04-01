@@ -5,10 +5,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-CASE_NAMES=("case1-sudo-granted" "case2-no-sudo-missing" "case3-no-sudo-preinstalled")
-CASE_DOCKERFILES=("Dockerfile.case1-sudo-granted" "Dockerfile.case2-no-sudo-missing" "Dockerfile.case3-no-sudo-preinstalled")
-CASE_EXPECTED_STATUS=("0" "nonzero" "0")
-CASE_EXPECTED_PATTERNS=("POST_INSTALL_SMOKE_OK" "Missing essential commands/prerequisites" "POST_INSTALL_SMOKE_OK")
+CASE_NAMES=("case1-sudo-granted" "case2-no-sudo-missing" "case3-no-sudo-preinstalled" "case4-unit-functions" "case5-idempotency")
+CASE_DOCKERFILES=("Dockerfile.case1-sudo-granted" "Dockerfile.case2-no-sudo-missing" "Dockerfile.case3-no-sudo-preinstalled" "Dockerfile.case4-unit-functions" "Dockerfile.case5-idempotency")
+CASE_EXPECTED_STATUS=("0" "nonzero" "0" "0" "0")
+CASE_EXPECTED_PATTERNS=("POST_INSTALL_SMOKE_OK" "Missing essential commands/prerequisites" "POST_INSTALL_SMOKE_OK" "UNIT_TESTS_OK" "POST_INSTALL_SMOKE_OK")
 
 cleanup_images=true
 if [ "${1:-}" = "--keep-images" ]; then

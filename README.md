@@ -80,7 +80,7 @@ Then it:
 
 Automated tests for privilege/package edge cases are in `testing/docker`.
 
-Run all three scenarios:
+Run all scenarios:
 
 ```bash
 bash testing/docker/run_tests.sh
@@ -90,6 +90,8 @@ Scenarios covered:
 1. sudo permission granted to the non-root user.
 2. no sudo permission and essential packages missing (expects failure).
 3. no sudo permission and all essential packages pre-installed.
+4. unit tests for pure/isolated shell functions (no network, no apt).
+5. idempotency: runs `setup.sh` twice in succession to verify no side-effect corruption.
 
 Notes:
 - Tests copy this repo into each image via `COPY . ...` (no host bind mount), avoiding host/container file permission issues.
@@ -97,7 +99,7 @@ Notes:
 - Temporary test images are removed by default; pass `--keep-images` to retain them.
 - If Docker or the Docker daemon is unavailable, tests stop with: `Testing could not be run without Docker.`
 - Case 2 uses `SETUP_TEST_EXIT_AFTER_PREREQS=1` to validate the non-sudo missing-prereqs failure path quickly.
-- Cases 1 and 3 run full `setup.sh`, then run post-install smoke checks in `testing/docker/post_install_smoke.sh`:
+- Cases 1, 3, and 5 run full `setup.sh`, then run post-install smoke checks in `testing/docker/post_install_smoke.sh`:
   - `yazi --version`
   - `lazygit --version`
   - `tmux -V` and isolated tmux server lifecycle
@@ -108,6 +110,8 @@ Notes:
   - lazygit managed block markers + `alias lazygit="$HOME/.local/bin/lazygit"` in `~/.bashrc`
   - Neovim headless checks for `:messages`, `:NoiceLog`, and `:MasonLog`
 - Neovim smoke checks run `Lazy! sync` first because first-run LazyVim plugin installation can take time.
+- Case 4 runs `testing/docker/unit_test_functions.sh`, a self-contained test harness covering: bashrc managed block helpers (`strip_managed_block_from_file`, `trim_*`, `upsert_mydotfiles_bashrc_block`), `require_commands`, `ensure_bashrc_line`, `version_gte`, and `setup.sh` argument parsing.
+- Case 5 runs `setup.sh` twice before smoke tests to verify idempotency (no duplicate bashrc lines, no stow conflicts, no permission errors on re-run).
 
 ## Setup options
 

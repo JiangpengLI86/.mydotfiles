@@ -1,0 +1,11 @@
+FROM ubuntu:24.04
+
+RUN useradd -m -s /bin/bash tester
+
+COPY . /home/tester/.mydotfiles
+RUN chown -R tester:tester /home/tester/.mydotfiles
+
+USER tester
+WORKDIR /home/tester/.mydotfiles
+
+CMD ["bash", "testing/docker/unit_test_functions.sh"]
