@@ -1,0 +1,19 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends sudo ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m -s /bin/bash tester \
+    && echo 'tester ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/tester \
+    && chmod 0440 /etc/sudoers.d/tester
+
+COPY . /home/tester/.mydotfiles
+RUN chown -R tester:tester /home/tester/.mydotfiles
+
+USER tester
+WORKDIR /home/tester/.mydotfiles
+
+CMD ["bash", "-lc", "bash setup.sh && bash setup.sh && bash testing/docker/post_install_smoke.sh"]
