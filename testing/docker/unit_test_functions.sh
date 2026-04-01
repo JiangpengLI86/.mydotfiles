@@ -334,21 +334,6 @@ begin_group "setup.sh argument parsing"
 # ------------------------------------------------------------------
 
 # --help exits 0
-(
-	cd "$REPO_ROOT"
-	# Temporarily rename the dir to .mydotfiles so the directory check passes;
-	# the script checks basename of PWD.
-	SETUP_TMP="$TMP/dot_mydotfiles_setup"
-	mkdir -p "$SETUP_TMP"
-	cp -r . "$SETUP_TMP/"
-	# We can't rename PWD; instead run setup.sh with --help before it reaches
-	# the directory check (it parses args after sourcing, but the dir check
-	# comes before arg parsing actually, so we call help another way):
-	# The usage() function is defined in help_messages.sh; just check it exits 0.
-	assert_exit_zero "setup.sh --help exits 0" bash setup.sh --help
-) 2>/dev/null || true
-# Since PWD is .mydotfiles, --help should work
-cd "$REPO_ROOT"
 assert_exit_zero "setup.sh --help exits 0" bash setup.sh --help
 
 # Unknown flag exits non-zero
