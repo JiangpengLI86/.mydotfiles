@@ -7,7 +7,7 @@ set -euo pipefail # Exit on errors, unset variables, and pipeline failures.
 # Default values for variables ================================
 USE_COPILOT=false
 BASIC_PACKAGES=("build-essential" "wget" "curl" "git" "python3" "python3-venv" "make" "stow" "fontconfig" "unzip" "tar" "bzip2" "xz-utils")
-STOW_TARGETS=("tmux" "nvim" "yazi" "inputrc" "condarc")
+STOW_TARGETS=("tmux" "nvim" "yazi" "inputrc" "condarc" "codex" "claude" "gemini")
 FAILED_STEPS=()
 PASSED_STEPS=()
 
@@ -130,6 +130,22 @@ stow_dotfiles() {
 		echo -e "${BOLD}${RED}GNU Stow is required for dotfile symlinks. Install it first or rerun with sudo/root.${RESET}"
 		return 1
 	fi
+	# Pre-create AI assistant config directories to prevent stow tree-folding.
+	# These tools write runtime data (auth, sessions, history) here, so we need
+	# real directories with per-file symlinks rather than a single directory symlink.
+	mkdir -p "$HOME/.codex/skills" "$HOME/.claude" "$HOME/.gemini"
+
+	# Remove any pre-existing real files that would conflict with stow symlinks.
+	# On a fresh machine these won't exist; on an existing machine they get replaced
+	# by symlinks pointing back into this repo (content is already captured here).
+	for conflict_file in \
+		"$HOME/.codex/config.toml" \
+		"$HOME/.claude/settings.json" \
+		"$HOME/.gemini/settings.json"; do
+		if [ -f "$conflict_file" ] && [ ! -L "$conflict_file" ]; then
+			rm "$conflict_file"
+		fi
+	done
 	echo -e "${BOLD}${YELLOW}Stowing directories...${RESET}"
 	for target in "${STOW_TARGETS[@]}"; do
 		stow "$target"
