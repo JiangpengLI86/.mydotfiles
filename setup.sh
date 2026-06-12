@@ -7,7 +7,7 @@ set -euo pipefail # Exit on errors, unset variables, and pipeline failures.
 # Default values for variables ================================
 USE_COPILOT=false
 BASIC_PACKAGES=("build-essential" "wget" "curl" "git" "python3" "python3-venv" "make" "stow" "fontconfig" "unzip" "tar" "bzip2" "xz-utils")
-STOW_TARGETS=("tmux" "nvim" "yazi" "inputrc" "condarc" "codex" "claude" "gemini")
+STOW_TARGETS=("tmux" "nvim" "yazi" "wezterm" "inputrc" "condarc" "codex" "claude" "gemini")
 FAILED_STEPS=()
 PASSED_STEPS=()
 

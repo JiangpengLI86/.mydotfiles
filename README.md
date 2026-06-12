@@ -5,6 +5,7 @@ Personal Ubuntu/WSL dotfiles with an automated bootstrap script for:
 - Neovim (LazyVim-based)
 - tmux
 - yazi
+- WezTerm
 - lazygit
 
 ## Quick start
@@ -74,7 +75,7 @@ Then it:
    - `export GPG_TTY=$(tty)`
    - starts `ssh-agent` if missing
 15. Runs GNU Stow for:
-   - `tmux`, `nvim`, `yazi`, `inputrc`, `condarc`
+   - `tmux`, `nvim`, `yazi`, `wezterm`, `inputrc`, `condarc`
    - `codex` → `~/.codex/` (config, skills)
    - `claude` → `~/.claude/` (settings, `CLAUDE.md` symlinked to shared `AGENTS.md`)
    - `gemini` → `~/.gemini/` (settings, `GEMINI.md` symlinked to shared `AGENTS.md`)
