@@ -1,7 +1,8 @@
-model = "gpt-5.4"
-model_reasoning_effort = "high"
+model = "gpt-5.5"
+model_reasoning_effort = "medium"
 personality = "pragmatic"
 plan_mode_reasoning_effort = "xhigh"
+service_tier = "default"
 
 [mcp_servers.github]
 url = "https://api.githubcopilot.com/mcp/"
@@ -9,3 +10,21 @@ bearer_token_env_var = "GITHUB_PAT_TOKEN"
 
 [plugins."github@openai-curated"]
 enabled = true
+
+[plugins."superpowers@openai-curated"]
+enabled = true
+
+[tui]
+status_line = ["model-with-reasoning", "current-dir", "run-state", "context-remaining", "five-hour-limit"]
+status_line_use_colors = true
+vim_mode_default = true
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+
+[features]
+terminal_resize_reflow = true
+goals = true
+
+[notice]
+hide_rate_limit_model_nudge = true
