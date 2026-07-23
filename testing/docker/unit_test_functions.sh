@@ -32,12 +32,16 @@ printf '%s\n' \
 	'export PATH="$HOME/.local/bin:$PATH"' >"$bashrc_path"
 config_bashrc "$bashrc_path"
 config_bashrc "$bashrc_path"
-if [ "$(grep -cF 'source "$HOME/.config/mydotfiles/bashrc.sh"' "$bashrc_path")" -ne 1 ]; then
+if [ "$(grep -cF 'if [ -f "$HOME/.config/mydotfiles/bashrc.sh" ]; then source "$HOME/.config/mydotfiles/bashrc.sh"; fi' "$bashrc_path")" -ne 1 ]; then
 	echo "config_bashrc duplicated the source line" >&2
 	exit 1
 fi
 if grep -qF "old managed content" "$bashrc_path" || ! grep -qF "# user content" "$bashrc_path"; then
 	echo "config_bashrc did not migrate the legacy block cleanly" >&2
+	exit 1
+fi
+if ! HOME="$TEST_DIR/missing-home" bash -e -c 'source "$1"' _ "$bashrc_path"; then
+	echo "config_bashrc added an unsafe source line" >&2
 	exit 1
 fi
 
@@ -49,12 +53,14 @@ done
 if ! (
 	export HOME="$TEST_DIR/home"
 	export PATH="$TEST_DIR/bin:/usr/bin:/bin"
+	unset GPG_TTY
 	ssh-add() { return 0; }
 	source ./bash/.config/mydotfiles/bashrc.sh
-	[ "$(command -v code)" = "$TEST_DIR/bin/code" ] &&
+	[ -z "${GPG_TTY+x}" ] &&
+		[ "$(command -v code)" = "$TEST_DIR/bin/code" ] &&
 		[ "$(command -v lazygit)" = "$TEST_DIR/bin/lazygit" ]
 ); then
-	echo "shell config masked a system code or lazygit command" >&2
+	echo "shell config mishandled a non-interactive shell" >&2
 	exit 1
 fi
 

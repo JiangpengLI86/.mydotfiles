@@ -12,7 +12,7 @@ unset mydotfiles_bin_dir
 
 PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\e[38;5;195m\]\w\n\[\033[00m\]\$ '
 set -o vi
-export GPG_TTY="$(tty)"
+tty -s && export GPG_TTY="$(tty)"
 
 if ! ssh-add -l &>/dev/null; then
 	eval "$(ssh-agent -s)"

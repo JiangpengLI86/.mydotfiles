@@ -61,10 +61,10 @@ Then it:
    - downloads `https://code.visualstudio.com/sha/download?build=stable&os=...`
    - installs/overwrites `~/.local/opt/vscode-cli/bin/code`
    - exposes its alias and PATH through the stowed shell configuration
-14. Adds one idempotent source line to `~/.bashrc` for `~/.config/mydotfiles/bashrc.sh`, which provides:
+14. Adds one idempotent conditional source line to `~/.bashrc` for `~/.config/mydotfiles/bashrc.sh`, which provides:
    - custom `PS1`
    - `set -o vi`
-   - `export GPG_TTY=$(tty)`
+   - exports `GPG_TTY` when a TTY is available
    - starts `ssh-agent` if missing
    - local binary paths, NVM initialization, aliases, and `yy()`
 15. Runs GNU Stow for:
