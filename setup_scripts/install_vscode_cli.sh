@@ -1,8 +1,5 @@
 # Install the VS Code CLI binary from official Microsoft download endpoints.
 
-VSCODE_CLI_BLOCK_START="# >>> mydotfiles vscode cli block >>>"
-VSCODE_CLI_BLOCK_END="# <<< mydotfiles vscode cli block <<<"
-
 vscode_cli_download_os() {
 	local arch
 	arch="$(uname -m)"
@@ -22,31 +19,6 @@ vscode_cli_download_os() {
 		return 1
 		;;
 	esac
-}
-
-configure_vscode_cli_shell_shortcut() {
-	local bashrc_path="$HOME/.bashrc"
-	local cli_bin_dir='$HOME/.local/opt/vscode-cli/bin'
-	local block_content
-
-	block_content=$(cat <<EOF
-$VSCODE_CLI_BLOCK_START
-# Prefer the mydotfiles-managed VS Code CLI over any system-provided code binary.
-if [ -d "$cli_bin_dir" ]; then
-	case ":\$PATH:" in
-	*:"$cli_bin_dir":*) ;;
-	*) export PATH="$cli_bin_dir:\$PATH" ;;
-	esac
-fi
-alias code="$cli_bin_dir/code"
-$VSCODE_CLI_BLOCK_END
-EOF
-)
-
-	upsert_mydotfiles_bashrc_block "$bashrc_path" "$VSCODE_CLI_BLOCK_START" "$VSCODE_CLI_BLOCK_END" "$block_content" "VS Code CLI shortcut block" || return 1
-
-	echo -e "${BOLD}${GREEN}VS Code CLI shortcut block is configured in bashrc.${RESET}"
-	return 0
 }
 
 install_vscode_cli() {
@@ -99,8 +71,6 @@ install_vscode_cli() {
 	if [ -n "$system_code_path" ] && [ "$system_code_path" != "$cli_bin_dir/code" ]; then
 		echo -e "${BOLD}${YELLOW}Detected system-level code at ${system_code_path}; preferring ${cli_bin_dir}/code.${RESET}"
 	fi
-
-	configure_vscode_cli_shell_shortcut || return 1
 
 	installed_version="$("$cli_bin_dir/code" --version 2>/dev/null | head -n1 || true)"
 	if [ -n "$installed_version" ]; then

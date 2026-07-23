@@ -1,8 +1,5 @@
 # Install lazygit from the official GitHub binary release.
 
-LAZYGIT_BLOCK_START="# >>> mydotfiles lazygit block >>>"
-LAZYGIT_BLOCK_END="# <<< mydotfiles lazygit block <<<"
-
 lazygit_download_arch() {
 	local arch
 	arch="$(uname -m)"
@@ -25,24 +22,6 @@ lazygit_download_arch() {
 		return 1
 		;;
 	esac
-}
-
-configure_lazygit_shell_shortcut() {
-	local bashrc_path="$HOME/.bashrc"
-	local lazygit_bin='$HOME/.local/bin/lazygit'
-	local block_content
-
-	block_content=$(cat <<EOF
-$LAZYGIT_BLOCK_START
-alias lazygit="$lazygit_bin"
-$LAZYGIT_BLOCK_END
-EOF
-)
-
-	upsert_mydotfiles_bashrc_block "$bashrc_path" "$LAZYGIT_BLOCK_START" "$LAZYGIT_BLOCK_END" "$block_content" "lazygit shortcut block" || return 1
-
-	echo -e "${BOLD}${GREEN}lazygit shortcut block is configured in bashrc.${RESET}"
-	return 0
 }
 
 install_lazygit() {
@@ -120,8 +99,6 @@ install_lazygit() {
 	install_tmp_path="$(mktemp "${HOME}/.local/bin/.lazygit.XXXXXX")"
 	install -m 0755 "$extracted_lazygit_path" "$install_tmp_path"
 	mv -fT "$install_tmp_path" "$target_lazygit_path"
-
-	configure_lazygit_shell_shortcut || return 1
 
 	installed_version="$("$target_lazygit_path" --version 2>/dev/null | head -n1 || true)"
 	if [ -n "$installed_version" ]; then
