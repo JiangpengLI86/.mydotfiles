@@ -135,7 +135,7 @@ Highlights:
 - LazyVim extras enabled for clang/cmake/python/tex/json/yaml/docker/git/dap/etc.
 - Clipboard handling supports WSL (`win32yank.exe`) and native Linux clipboard tools.
 - `nvim-treesitter` is adjusted to avoid stale parser issues.
-- `none-ls` prettier is customized for markdown tab width.
+- LazyVim's Prettier extra formats supported files through Conform.
 - VimTeX only loads when a TeX compiler (`latexmk` or `tectonic`) exists.
 
 ## Utility scripts
