@@ -30,6 +30,9 @@
 *.log
 *.lock
 
+# Restored by `ya pkg install`
+/yazi/.config/yazi/flavors/
+
 # Backup files (can be created by editors)
 # *~
 .*.swp

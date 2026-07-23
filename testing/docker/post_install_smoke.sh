@@ -17,6 +17,11 @@ if ! command -v yazi >/dev/null 2>&1; then
 fi
 yazi --version
 
+if [ ! -d "$HOME/.config/yazi/flavors/catppuccin-mocha.yazi" ]; then
+	echo "Smoke check failed: Catppuccin Mocha was not installed by ya pkg."
+	exit 1
+fi
+
 if ! command -v tmux >/dev/null 2>&1; then
 	echo "Smoke check failed: tmux is not on PATH."
 	exit 1

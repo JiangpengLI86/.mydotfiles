@@ -40,8 +40,8 @@ Then it:
 7. Installs **yazi**:
    - prefers latest official **musl** prebuilt release into `~/.local/bin` for better libc compatibility
    - falls back to source build from `~/.local/src/yazi` when needed
-   - if a legacy source build exists at `/opt/yazi/target/release`, reuses it by linking `yazi`/`ya` into `~/.local/bin`
-   - adds a `yy()` shell wrapper to preserve cwd after yazi exits inside the shared mydotfiles-managed `~/.bashrc` section
+   - restores the locked Catppuccin Mocha flavor with `ya pkg install`
+   - provides a `yy()` shell wrapper through the stowed shell configuration
 8. Installs **lazygit** from the latest official GitHub release tarball:
    - downloads from `https://github.com/jesseduffield/lazygit/releases/latest/download/...`
    - installs/overwrites `~/.local/bin/lazygit`
