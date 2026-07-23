@@ -37,6 +37,9 @@ printf '%s\n' \
 	"# user content" \
 	"# >>> mydotfiles managed blocks >>>" \
 	"old managed content" \
+	"# >>> mydotfiles managed nested block >>>" \
+	"old nested managed content" \
+	"# <<< mydotfiles managed nested block <<<" \
 	"# <<< mydotfiles managed blocks <<<" \
 	"# >>> conda initialize >>>" \
 	"old conda content" \
@@ -61,7 +64,7 @@ if [ "$(grep -cF "# >>> mydotfiles managed shell setup >>>" "$bashrc_path")" -ne
 	echo "config_bashrc duplicated the managed block" >&2
 	exit 1
 fi
-if grep -Eq "old managed content|old conda content|NVM_DIR/nvm.sh|\\.cargo/env" "$bashrc_path" || ! grep -qF "# user content" "$bashrc_path"; then
+if grep -Eq "old (nested )?managed content|old conda content|NVM_DIR/nvm.sh|\\.cargo/env" "$bashrc_path" || ! grep -qF "# user content" "$bashrc_path"; then
 	echo "config_bashrc did not migrate the legacy block cleanly" >&2
 	exit 1
 fi

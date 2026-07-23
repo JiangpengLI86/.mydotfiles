@@ -25,9 +25,12 @@ config_bashrc() {
 	temp_path="$(mktemp "${bashrc_path}.XXXXXX")"
 	trap 'rm -f "$temp_path"' RETURN
 	awk '
-		/^# >>> (mydotfiles managed|conda initialize)/ { skipping = 1; next }
-		skipping && /^# <<< (mydotfiles managed|conda initialize)/ { skipping = 0; next }
-		skipping { next }
+		/^# >>> mydotfiles managed/ { managed_depth++; next }
+		/^# <<< mydotfiles managed/ { if (managed_depth) managed_depth--; next }
+		managed_depth { next }
+		/^# >>> conda initialize >>>$/ { conda_block = 1; next }
+		/^# <<< conda initialize <<<$/{ conda_block = 0; next }
+		conda_block { next }
 		/^export PATH="\$HOME\/(\.local\/bin|\.cargo\/bin|\.local\/opt\/vscode-cli\/bin):\$PATH"$/ { next }
 		/^export NVM_DIR=/ { next }
 		/^export ENABLE_COPILOT=1$/ { next }
