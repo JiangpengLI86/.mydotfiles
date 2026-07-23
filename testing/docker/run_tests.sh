@@ -65,7 +65,7 @@ enable_line_wrap() {
 }
 
 prepare_dashboard_terminal() {
-	[ "$dashboard_enabled" = true ] || return
+	[ "$dashboard_enabled" = true ] || return 0
 	[ "$dashboard_terminal_prepared" = true ] && return
 
 	printf '\033[?1049h'
@@ -75,8 +75,8 @@ prepare_dashboard_terminal() {
 }
 
 restore_dashboard_terminal() {
-	[ "$dashboard_enabled" = true ] || return
-	[ "$dashboard_terminal_prepared" = true ] || return
+	[ "$dashboard_enabled" = true ] || return 0
+	[ "$dashboard_terminal_prepared" = true ] || return 0
 
 	enable_line_wrap
 	printf '\033[?25h'
@@ -335,7 +335,7 @@ stop_running_cases() {
 }
 
 render_live_dashboard() {
-	[ "$dashboard_enabled" = true ] || return
+	[ "$dashboard_enabled" = true ] || return 0
 
 	printf '\033[H\033[J'
 	echo "Docker test logs (live dashboard)"
