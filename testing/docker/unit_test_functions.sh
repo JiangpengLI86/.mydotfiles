@@ -23,20 +23,48 @@ if require_commands __missing_mydotfiles_test_command__; then
 	exit 1
 fi
 
+mkdir -p "$TEST_DIR/home/.local/bin" "$TEST_DIR/source-bin"
+printf '#!/bin/sh\n' >"$TEST_DIR/source-bin/example"
+chmod +x "$TEST_DIR/source-bin/example"
+HOME="$TEST_DIR/home" link_local_bin "$TEST_DIR/source-bin/example"
+if [ "$(readlink "$TEST_DIR/home/.local/bin/example")" != "$TEST_DIR/source-bin/example" ]; then
+	echo "link_local_bin did not create the expected local command link" >&2
+	exit 1
+fi
+
 bashrc_path="$TEST_DIR/bashrc"
 printf '%s\n' \
 	"# user content" \
 	"# >>> mydotfiles managed blocks >>>" \
 	"old managed content" \
+	"# >>> mydotfiles managed nested block >>>" \
+	"old nested managed content" \
+	"# <<< mydotfiles managed nested block <<<" \
 	"# <<< mydotfiles managed blocks <<<" \
-	'export PATH="$HOME/.local/bin:$PATH"' >"$bashrc_path"
+	"# >>> conda initialize >>>" \
+	"old conda content" \
+	"# <<< conda initialize <<<" \
+	'export PATH="$HOME/.local/bin:$PATH"' \
+	'export NVM_DIR="$HOME/.nvm"' \
+	'[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' \
+	'. "$HOME/.cargo/env"' >"$bashrc_path"
 config_bashrc "$bashrc_path"
+first_bashrc="$TEST_DIR/bashrc-first"
+cp "$bashrc_path" "$first_bashrc"
 config_bashrc "$bashrc_path"
-if [ "$(grep -cF 'if [ -f "$HOME/.config/mydotfiles/bashrc.sh" ]; then source "$HOME/.config/mydotfiles/bashrc.sh"; fi' "$bashrc_path")" -ne 1 ]; then
+if ! cmp -s "$first_bashrc" "$bashrc_path"; then
+	echo "config_bashrc changed content on its second run" >&2
+	exit 1
+fi
+if [ "$(grep -cF 'source "$HOME/.config/mydotfiles/bashrc.sh"' "$bashrc_path")" -ne 1 ]; then
 	echo "config_bashrc duplicated the source line" >&2
 	exit 1
 fi
-if grep -qF "old managed content" "$bashrc_path" || ! grep -qF "# user content" "$bashrc_path"; then
+if [ "$(grep -cF "# >>> mydotfiles managed shell setup >>>" "$bashrc_path")" -ne 1 ]; then
+	echo "config_bashrc duplicated the managed block" >&2
+	exit 1
+fi
+if grep -Eq "old (nested )?managed content|old conda content|NVM_DIR/nvm.sh|\\.cargo/env" "$bashrc_path" || ! grep -qF "# user content" "$bashrc_path"; then
 	echo "config_bashrc did not migrate the legacy block cleanly" >&2
 	exit 1
 fi
@@ -45,7 +73,18 @@ if ! HOME="$TEST_DIR/missing-home" bash -e -c 'source "$1"' _ "$bashrc_path"; th
 	exit 1
 fi
 
-mkdir -p "$TEST_DIR/home" "$TEST_DIR/bin"
+malformed_bashrc="$TEST_DIR/malformed-bashrc"
+printf '%s\n' "# >>> conda initialize >>>" "unterminated" >"$malformed_bashrc"
+if config_bashrc "$malformed_bashrc"; then
+	echo "config_bashrc accepted a malformed previous block" >&2
+	exit 1
+fi
+if ! grep -qF "unterminated" "$malformed_bashrc"; then
+	echo "config_bashrc changed a malformed previous block" >&2
+	exit 1
+fi
+
+mkdir -p "$TEST_DIR/bin"
 for command_name in code lazygit; do
 	printf '#!/bin/sh\n' >"$TEST_DIR/bin/$command_name"
 	chmod +x "$TEST_DIR/bin/$command_name"
