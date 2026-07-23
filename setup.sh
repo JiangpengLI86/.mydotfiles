@@ -152,7 +152,7 @@ stow_dotfiles() {
 	echo -e "${BOLD}${GREEN}Stowing completed!${RESET}"
 }
 run_step "GNU Stow symlinks" stow_dotfiles
-run_step "Yazi packages" "$HOME/.local/bin/ya" pkg install
+run_step "Yazi packages" env PATH="$HOME/.local/bin:$PATH" ya pkg install
 
 # Summary ================================
 echo ""
