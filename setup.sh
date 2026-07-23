@@ -7,7 +7,7 @@ set -euo pipefail # Exit on errors, unset variables, and pipeline failures.
 # Default values for variables ================================
 USE_COPILOT=false
 BASIC_PACKAGES=("build-essential" "wget" "curl" "git" "python3" "python3-venv" "make" "stow" "fontconfig" "unzip" "tar" "bzip2" "xz-utils")
-STOW_TARGETS=("tmux" "nvim" "yazi" "inputrc" "condarc" "codex" "claude" "gemini")
+STOW_TARGETS=("bash" "tmux" "nvim" "yazi" "inputrc" "condarc" "codex" "claude" "gemini")
 FAILED_STEPS=()
 PASSED_STEPS=()
 
@@ -15,7 +15,6 @@ PASSED_STEPS=()
 source ./setup_scripts/ensure_sudo.sh            # For ensure_sudo() function
 source ./setup_scripts/help_messages.sh          # For usage() function
 source ./setup_scripts/install_basic_packages.sh # For install_packages() function
-source ./setup_scripts/bashrc_helpers.sh         # For managed .bashrc block helpers
 source ./setup_scripts/install_nerdfonts.sh      # For install_nerd_fonts() function
 source ./setup_scripts/install_yazi.sh           # For install_yazi() function
 source ./setup_scripts/install_lazygit.sh        # For install_lazygit() function
@@ -102,7 +101,7 @@ if [ "${SETUP_TEST_EXIT_AFTER_PREREQS:-0}" = "1" ]; then
 fi
 
 # Ensure Rust stable toolchain is installed/updated for all source builds ================================
-run_step "Rust toolchain" bash ./setup_scripts/update_rust_stable.sh --yes
+run_step "Rust toolchain" bash ./setup_scripts/update_rust_stable.sh
 # Source cargo env regardless — if rust was already installed it works;
 # if the step failed, subsequent steps needing cargo will fail on their own.
 if [ -s "$HOME/.cargo/env" ]; then
@@ -133,7 +132,7 @@ stow_dotfiles() {
 	# Pre-create AI assistant config directories to prevent stow tree-folding.
 	# These tools write runtime data (auth, sessions, history) here, so we need
 	# real directories with per-file symlinks rather than a single directory symlink.
-	mkdir -p "$HOME/.codex/skills" "$HOME/.claude" "$HOME/.gemini"
+	mkdir -p "$HOME/.config/mydotfiles" "$HOME/.codex/skills" "$HOME/.claude" "$HOME/.gemini"
 
 	# Remove any pre-existing real files that would conflict with stow symlinks.
 	# On a fresh machine these won't exist; on an existing machine they get replaced
@@ -153,6 +152,7 @@ stow_dotfiles() {
 	echo -e "${BOLD}${GREEN}Stowing completed!${RESET}"
 }
 run_step "GNU Stow symlinks" stow_dotfiles
+run_step "Yazi packages" env PATH="$HOME/.local/bin:$PATH" ya pkg install
 
 # Summary ================================
 echo ""

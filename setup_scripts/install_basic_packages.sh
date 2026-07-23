@@ -23,37 +23,16 @@ apt_update_if_possible() {
 
 ensure_bashrc_line() {
 	local line="$1"
-	touch "$HOME/.bashrc"
-	if ! grep -qxF "$line" "$HOME/.bashrc"; then
-		echo "$line" >>"$HOME/.bashrc"
+	local bashrc_path="${2:-$HOME/.bashrc}"
+	touch "$bashrc_path"
+	if ! grep -qxF "$line" "$bashrc_path"; then
+		echo "$line" >>"$bashrc_path"
 	fi
 }
 
 ensure_local_bin_on_path() {
-	ensure_bashrc_line 'export PATH="$HOME/.local/bin:$PATH"'
 	export PATH="$HOME/.local/bin:$PATH"
 	mkdir -p "$HOME/.local/bin"
-}
-
-configure_local_cargo_build_env() {
-	local arch
-	local libc_version
-	local libc_tag
-
-	arch="$(uname -m 2>/dev/null || echo "unknown")"
-	libc_version="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}')"
-
-	if [ -n "$libc_version" ]; then
-		libc_tag="glibc-${libc_version}"
-	else
-		libc_tag="libc-unknown"
-	fi
-
-	# Keep cargo build artifacts isolated per runtime libc to avoid reusing
-	# host-compiled objects when the same HOME is shared across containers.
-	export CARGO_TARGET_DIR="$HOME/.cache/cargo-target/${arch}-${libc_tag}"
-	unset CARGO_BUILD_TARGET
-	mkdir -p "$CARGO_TARGET_DIR"
 }
 
 require_commands() {

@@ -34,47 +34,41 @@ Then it:
 2. Installs baseline packages via apt when possible:
    - build-essential, wget, curl, git, python3, python3-venv, make, stow, fontconfig, unzip, tar, bzip2, xz-utils
 3. Verifies essential prerequisites are present (`cc`, `wget`, `curl`, `git`, `python3`, `make`, `stow`, `fc-cache`, `unzip`, `tar`, `bzip2`, `xz`, Python `venv` module), and exits early with a clear error if they are missing.
-4. Runs `setup_scripts/update_rust_stable.sh --yes` and exports `RUSTUP_TOOLCHAIN=stable` for this setup run.
+4. Runs `setup_scripts/update_rust_stable.sh` and exports `RUSTUP_TOOLCHAIN=stable` for this setup run.
 5. Detects existing **conda** and upgrades it in `base`; if missing, installs **Miniconda** to `~/miniconda3`, then runs `conda init bash`.
 6. Installs **CaskaydiaMono Nerd Font** into `~/.local/share/fonts`.
 7. Installs **yazi**:
    - prefers latest official **musl** prebuilt release into `~/.local/bin` for better libc compatibility
    - falls back to source build from `~/.local/src/yazi` when needed
-   - if a legacy source build exists at `/opt/yazi/target/release`, reuses it by linking `yazi`/`ya` into `~/.local/bin`
-   - adds a `yy()` shell wrapper to preserve cwd after yazi exits inside the shared mydotfiles-managed `~/.bashrc` section
+   - restores the locked Catppuccin Mocha flavor with `ya pkg install`
+   - provides a `yy()` shell wrapper through the stowed shell configuration
 8. Installs **lazygit** from the latest official GitHub release tarball:
    - downloads from `https://github.com/jesseduffield/lazygit/releases/latest/download/...`
    - installs/overwrites `~/.local/bin/lazygit`
-   - manages a dedicated inner block inside the shared mydotfiles-managed `~/.bashrc` section with `alias lazygit="$HOME/.local/bin/lazygit"`
+   - exposes `alias lazygit="$HOME/.local/bin/lazygit"` through the stowed shell configuration
 9. Installs **Neovim**:
-   - apt (`ppa:neovim-ppa/unstable`) when root/sudo is available
-   - otherwise Linux prebuilt into `~/.local/opt/nvim` + `~/.local/bin/nvim`
+   - installs the official Linux prebuilt into `~/.local/opt/nvim` + `~/.local/bin/nvim`
    - auto-selects `neovim/neovim-releases` binaries on older glibc hosts for compatibility
 10. Ensures Node/npm is available for Mason:
    - installs `nvm` + latest LTS Node when needed
-   - manages a dedicated inner `~/.bashrc` block that initializes `NVM_DIR`, `nvm.sh`, and `bash_completion` for fresh shells
-11. Ensures `tree-sitter` CLI is available and new enough (>= `0.26.1`):
-   - prefers existing install if compatible
-   - tries apt package first
-   - falls back to `cargo install tree-sitter-cli --locked --force`
-   - isolates cargo target artifacts by local libc/arch to avoid cross-host cache reuse issues
-   - removes incompatible cached Neovim parser `.so` files so they rebuild locally
+   - initializes `NVM_DIR`, `nvm.sh`, and `bash_completion` from the stowed shell configuration
+11. Ensures `tree-sitter` CLI is available:
+   - runs `cargo install tree-sitter-cli --locked --no-default-features`
 12. Installs **tmux**:
    - apt when root/sudo is available
    - otherwise builds from source into `~/.local` (with local ncurses/libevent build if needed)
 13. Installs latest **VS Code CLI** from Microsoft download endpoint:
    - downloads `https://code.visualstudio.com/sha/download?build=stable&os=...`
    - installs/overwrites `~/.local/opt/vscode-cli/bin/code`
-   - manages a dedicated inner block inside the shared mydotfiles-managed `~/.bashrc` section with:
-     - `alias code="$HOME/.local/opt/vscode-cli/bin/code"`
-     - PATH-prepend for `~/.local/opt/vscode-cli/bin` so this managed CLI is preferred over system `code`
-14. Rewrites the shell-defaults inner block in the shared mydotfiles-managed section of `~/.bashrc`:
+   - exposes its alias and PATH through the stowed shell configuration
+14. Adds one idempotent conditional source line to `~/.bashrc` for `~/.config/mydotfiles/bashrc.sh`, which provides:
    - custom `PS1`
    - `set -o vi`
-   - `export GPG_TTY=$(tty)`
+   - exports `GPG_TTY` when a TTY is available
    - starts `ssh-agent` if missing
+   - local binary paths, NVM initialization, aliases, and `yy()`
 15. Runs GNU Stow for:
-   - `tmux`, `nvim`, `yazi`, `inputrc`, `condarc`
+   - `bash`, `tmux`, `nvim`, `yazi`, `inputrc`, `condarc`
    - `codex` → `~/.codex/` (config, skills)
    - `claude` → `~/.claude/` (settings, `CLAUDE.md` symlinked to shared `AGENTS.md`)
    - `gemini` → `~/.gemini/` (settings, `GEMINI.md` symlinked to shared `AGENTS.md`)
@@ -107,13 +101,11 @@ Notes:
   - `lazygit --version`
   - `tmux -V` and isolated tmux server lifecycle
   - `~/.local/opt/vscode-cli/bin/code --version`
-  - top-level mydotfiles-managed `~/.bashrc` block markers
-  - `nvm` managed block markers and `npm` availability from a fresh interactive shell
-  - VS Code CLI managed block markers + alias/PATH lines in `~/.bashrc`
-  - lazygit managed block markers + `alias lazygit="$HOME/.local/bin/lazygit"` in `~/.bashrc`
-  - Neovim headless checks for `:messages`, `:NoiceLog`, and `:MasonLog`
+  - one `~/.bashrc` source line for the stowed shell configuration
+  - `npm`, `yy()`, and the VS Code/lazygit aliases from a fresh interactive shell
+  - Neovim headless checks for the Noice module, `:messages`, and `:Mason`
 - Neovim smoke checks run `Lazy! sync` first because first-run LazyVim plugin installation can take time.
-- Case 4 runs `testing/docker/unit_test_functions.sh`, a self-contained test harness covering: bashrc managed block helpers (`strip_managed_block_from_file`, `trim_*`, `upsert_mydotfiles_bashrc_block`), `require_commands`, `ensure_bashrc_line`, `version_gte`, and `setup.sh` argument parsing.
+- Case 4 runs `testing/docker/unit_test_functions.sh`, covering `require_commands`, the idempotent shell-config source line, and `setup.sh` argument parsing.
 - Case 5 runs `setup.sh` twice before smoke tests to verify idempotency (no duplicate bashrc lines, no stow conflicts, no permission errors on re-run).
 
 ## Setup options
@@ -122,7 +114,7 @@ Notes:
 bash setup.sh --use-copilot
 ```
 
-This sets `export ENABLE_COPILOT=1` in `~/.bashrc`, which enables the Neovim Copilot plugin config (`lua/plugins/copilot.lua`).
+This creates `~/.config/mydotfiles/enable-copilot`, which the stowed shell configuration uses to enable the Neovim Copilot plugin config (`lua/plugins/copilot.lua`).
 
 ## Post-install notes
 
@@ -143,7 +135,7 @@ Highlights:
 - LazyVim extras enabled for clang/cmake/python/tex/json/yaml/docker/git/dap/etc.
 - Clipboard handling supports WSL (`win32yank.exe`) and native Linux clipboard tools.
 - `nvim-treesitter` is adjusted to avoid stale parser issues.
-- `none-ls` prettier is customized for markdown tab width.
+- LazyVim's Prettier extra formats supported files through Conform.
 - VimTeX only loads when a TeX compiler (`latexmk` or `tectonic`) exists.
 
 ## Utility scripts
@@ -152,25 +144,9 @@ Highlights:
 
 ```bash
 bash setup_scripts/update_rust_stable.sh
-bash setup_scripts/update_rust_stable.sh --yes
-bash setup_scripts/update_rust_stable.sh --check
 ```
 
-Updates `rustup`, `stable`, and stable components (`rustfmt`, `clippy`) without changing non-stable defaults.
-
-### Uninstall source-built artifacts managed by this repo
-
-```bash
-bash setup_scripts/uninstall_source_build_tools.sh
-bash setup_scripts/uninstall_source_build_tools.sh --yes
-bash setup_scripts/uninstall_source_build_tools.sh --check
-```
-
-Removes managed source-built installs for:
-- `/opt/yazi`
-- `~/.cargo/bin/tree-sitter`
-- `/usr/local/bin/tree-sitter` symlink (only when it points to the cargo binary)
-- yazi PATH/wrapper entries in `~/.bashrc`
+Installs rustup when absent, updates stable, adds `rustfmt` and `clippy`, then runs `rustup check`.
 
 ## Troubleshooting
 

@@ -1,162 +1,16 @@
 #!/usr/bin/env bash
-# Safely update the Rust stable toolchain on demand.
-#
-# Usage:
-#   bash setup_scripts/update_rust_stable.sh
-#   bash setup_scripts/update_rust_stable.sh --yes
-#   bash setup_scripts/update_rust_stable.sh --check
 
 set -euo pipefail
 
-BOLD='\e[1m'
-GREEN='\e[32m'
-YELLOW='\e[33m'
-RED='\e[31m'
-RESET='\e[0m'
+export PATH="$HOME/.cargo/bin:$PATH"
 
-AUTO_APPROVE=false
-CHECK_ONLY=false
-
-usage() {
-	cat <<'EOF'
-Usage: update_rust_stable.sh [options]
-
-Options:
-  -y, --yes    Run without interactive confirmation.
-  --check      Show current Rust status and rustup check output only.
-  -h, --help   Show this help message.
-EOF
-}
-
-while (($#)); do
-	case "$1" in
-	-y | --yes)
-		AUTO_APPROVE=true
-		;;
-	--check)
-		CHECK_ONLY=true
-		;;
-	-h | --help)
-		usage
-		exit 0
-		;;
-	*)
-		echo -e "${RED}Unknown option: $1${RESET}"
-		usage
-		exit 1
-		;;
-	esac
-	shift
-done
-
-source_cargo_env() {
-	if [ -s "$HOME/.cargo/env" ]; then
-		# shellcheck source=/dev/null
-		source "$HOME/.cargo/env"
-	else
-		export PATH="$HOME/.cargo/bin:$PATH"
-	fi
-}
-
-install_rustup() {
-	local rustup_init_script
-	rustup_init_script="$(mktemp)"
-
-	echo -e "${BOLD}${YELLOW}rustup not found; installing Rust toolchain manager...${RESET}"
-	if command -v curl >/dev/null 2>&1; then
-		curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs -o "$rustup_init_script"
-	elif command -v wget >/dev/null 2>&1; then
-		wget -qO "$rustup_init_script" https://sh.rustup.rs
-	else
-		rm -f "$rustup_init_script"
-		echo -e "${RED}curl or wget is required to install rustup automatically.${RESET}"
-		echo -e "${RED}Install one of them, then re-run this script.${RESET}"
-		exit 1
-	fi
-
-	sh "$rustup_init_script" -y --default-toolchain stable --profile default
-	rm -f "$rustup_init_script"
-	source_cargo_env
-
-	if ! command -v rustup >/dev/null 2>&1; then
-		echo -e "${RED}rustup installation completed but rustup is still not on PATH.${RESET}"
-		echo -e "${RED}Try running: source \"$HOME/.cargo/env\"${RESET}"
-		exit 1
-	fi
-}
-
-source_cargo_env
 if ! command -v rustup >/dev/null 2>&1; then
-	if [ "$CHECK_ONLY" = true ]; then
-		echo -e "${YELLOW}rustup is not installed yet. Nothing to check.${RESET}"
-		exit 0
-	fi
-	install_rustup
+	rustup_installer="$(mktemp)"
+	trap 'rm -f "$rustup_installer"' EXIT
+	curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs -o "$rustup_installer"
+	sh "$rustup_installer" -y --default-toolchain stable --profile default
 fi
 
-get_default_toolchain() {
-	rustup toolchain list | awk '/\(.*default.*\)/ {print $1; exit}'
-}
-
-default_toolchain="$(get_default_toolchain)"
-default_channel="${default_toolchain%%-*}"
-
-echo -e "${BOLD}${YELLOW}Current Rust status:${RESET}"
-if rustc +stable --version >/dev/null 2>&1; then
-	echo "  $(rustc +stable --version)"
-else
-	echo "  stable toolchain: not installed"
-fi
-
-if cargo +stable --version >/dev/null 2>&1; then
-	echo "  $(cargo +stable --version)"
-fi
-
-if [ -n "$default_toolchain" ]; then
-	echo "  default toolchain: $default_toolchain"
-else
-	echo "  default toolchain: (not set)"
-fi
-
-if [ "$CHECK_ONLY" = true ]; then
-	echo -e "${BOLD}${YELLOW}Running rustup check...${RESET}"
-	rustup check
-	exit 0
-fi
-
-if [ "$AUTO_APPROVE" != true ]; then
-	if [ ! -t 0 ]; then
-		echo -e "${RED}Non-interactive shell detected. Re-run with --yes to proceed.${RESET}"
-		exit 1
-	fi
-
-	read -r -p "Update Rust stable toolchain now? [y/N] " answer
-	case "$answer" in
-	y | Y | yes | YES)
-		;;
-	*)
-		echo -e "${YELLOW}Canceled.${RESET}"
-		exit 0
-		;;
-	esac
-fi
-
-echo -e "${BOLD}${YELLOW}Updating rustup...${RESET}"
-rustup self update
-
-echo -e "${BOLD}${YELLOW}Installing/updating Rust stable toolchain...${RESET}"
-rustup toolchain install stable --profile default
-
-echo -e "${BOLD}${YELLOW}Ensuring standard stable components...${RESET}"
+rustup update stable
 rustup component add rustfmt clippy --toolchain stable
-
-echo -e "${BOLD}${YELLOW}Verifying Rust toolchain status...${RESET}"
 rustup check
-echo "  $(rustc +stable --version)"
-echo "  $(cargo +stable --version)"
-
-if [ "$default_channel" != "stable" ] && [ -n "$default_toolchain" ]; then
-	echo -e "${BOLD}${YELLOW}Note:${RESET} default toolchain remains ${default_toolchain} (unchanged)."
-fi
-
-echo -e "${BOLD}${GREEN}Rust stable toolchain update completed.${RESET}"

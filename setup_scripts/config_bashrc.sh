@@ -1,24 +1,13 @@
-# Add some additional configuration to the .bashrc file
 config_bashrc() {
-	local bashrc="$HOME/.bashrc"
-	local start_marker="# >>> mydotfiles managed block >>>"
-	local end_marker="# <<< mydotfiles managed block <<<"
-	local block_content
-
-	local new_ps1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\e[38;5;195m\]\w\n\[\033[00m\]\$ '
-	block_content=$(cat <<EOF
-$start_marker
-PS1='${new_ps1}'
-set -o vi
-export GPG_TTY=\$(tty)
-if ! ssh-add -l &>/dev/null; then
-    eval "\$(ssh-agent -s)"
-fi
-$end_marker
-EOF
-)
-
-	upsert_mydotfiles_bashrc_block "$bashrc" "$start_marker" "$end_marker" "$block_content" "managed .bashrc defaults" || return 1
-
-	echo -e "${BOLD}${GREEN} Configuration of the .bashrc file completed successfully.${RESET}"
+	local bashrc_path="${1:-$HOME/.bashrc}"
+	touch "$bashrc_path"
+	sed -i \
+		-e '/^# >>> mydotfiles managed blocks >>>$/,/^# <<< mydotfiles managed blocks <<<$/d' \
+		-e '/^export PATH="\$HOME\/\.local\/bin:\$PATH"$/d' \
+		-e '/^export PATH="\$HOME\/\.cargo\/bin:\$PATH"$/d' \
+		-e '/^export ENABLE_COPILOT=1$/d' \
+		-e '/^source "\$HOME\/\.config\/mydotfiles\/bashrc\.sh"$/d' \
+		"$bashrc_path"
+	ensure_bashrc_line 'if [ -f "$HOME/.config/mydotfiles/bashrc.sh" ]; then source "$HOME/.config/mydotfiles/bashrc.sh"; fi' "$bashrc_path"
+	echo -e "${BOLD}${GREEN}Shell configuration is sourced from ~/.config/mydotfiles/bashrc.sh.${RESET}"
 }

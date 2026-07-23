@@ -1,36 +1,5 @@
 source ./setup_scripts/install_basic_packages.sh # For helpers and install_packages functions
 
-YAZI_WRAPPER_START="# >>> yazi shell wrapper >>>"
-YAZI_WRAPPER_END="# <<< yazi shell wrapper <<<"
-
-yazi_shell_wrapper=$(
-	cat <<'EOF'
-# >>> yazi shell wrapper >>>
-function yy() {
-	local yazi_cmd
-	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
-	if command -v yazi >/dev/null 2>&1; then
-		yazi_cmd="$(command -v yazi)"
-	elif [ -x "$HOME/.local/bin/yazi" ]; then
-		yazi_cmd="$HOME/.local/bin/yazi"
-	elif [ -x "/opt/yazi/target/release/yazi" ]; then
-		yazi_cmd="/opt/yazi/target/release/yazi"
-	else
-		echo "yy: yazi is not installed or not on PATH."
-		rm -f -- "$tmp"
-		return 127
-	fi
-
-	"$yazi_cmd" "$@" --cwd-file="$tmp"
-	if cwd="$(cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
-		builtin cd -- "$cwd"
-	fi
-	rm -f -- "$tmp"
-}
-# <<< yazi shell wrapper <<<
-EOF
-)
-
 resolve_yazi_bins() {
 	local yazi_bin=""
 	local ya_bin=""
@@ -63,13 +32,6 @@ resolve_yazi_bins() {
 		if [ -x "$HOME/.local/bin/yazi" ] && [ -x "$HOME/.local/bin/ya" ]; then
 			yazi_bin="$HOME/.local/bin/yazi"
 			ya_bin="$HOME/.local/bin/ya"
-		fi
-	fi
-
-	if [ -z "$yazi_bin" ] || [ -z "$ya_bin" ]; then
-		if [ -x "/opt/yazi/target/release/yazi" ] && [ -x "/opt/yazi/target/release/ya" ]; then
-			yazi_bin="/opt/yazi/target/release/yazi"
-			ya_bin="/opt/yazi/target/release/ya"
 		fi
 	fi
 
@@ -238,18 +200,10 @@ install_yazi_from_source() {
 	if [ -d "$yazi_src_dir/target" ]; then
 		rm -rf "$yazi_src_dir/target"
 	fi
-	configure_local_cargo_build_env
 	cargo build --release --locked --manifest-path "$yazi_src_dir/Cargo.toml"
 	install -m 0755 "$yazi_src_dir/target/release/yazi" "$HOME/.local/bin/yazi"
 	install -m 0755 "$yazi_src_dir/target/release/ya" "$HOME/.local/bin/ya"
 
-	return 0
-}
-
-add_yazi_shell_wrapper() {
-	local bashrc_path="$HOME/.bashrc"
-	upsert_mydotfiles_bashrc_block "$bashrc_path" "$YAZI_WRAPPER_START" "$YAZI_WRAPPER_END" "$yazi_shell_wrapper" "yazi shell wrapper" || return 1
-	echo -e "${BOLD}${GREEN}yazi shell wrapper is configured in bashrc.${RESET}"
 	return 0
 }
 
@@ -280,6 +234,5 @@ install_yazi() {
 	fi
 
 	ensure_yazi_commands_on_path
-	add_yazi_shell_wrapper
 	echo -e "${BOLD}${GREEN}yazi installed successfully.${RESET}"
 }

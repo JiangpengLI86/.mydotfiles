@@ -19,7 +19,6 @@ RUN apt-get update \
         xz-utils \
         pkg-config \
         bison \
-        libclang-dev \
         ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
