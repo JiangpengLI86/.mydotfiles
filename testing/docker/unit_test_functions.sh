@@ -41,6 +41,23 @@ if grep -qF "old managed content" "$bashrc_path" || ! grep -qF "# user content" 
 	exit 1
 fi
 
+mkdir -p "$TEST_DIR/home" "$TEST_DIR/bin"
+for command_name in code lazygit; do
+	printf '#!/bin/sh\n' >"$TEST_DIR/bin/$command_name"
+	chmod +x "$TEST_DIR/bin/$command_name"
+done
+if ! (
+	export HOME="$TEST_DIR/home"
+	export PATH="$TEST_DIR/bin:/usr/bin:/bin"
+	ssh-add() { return 0; }
+	source ./bash/.config/mydotfiles/bashrc.sh
+	[ "$(command -v code)" = "$TEST_DIR/bin/code" ] &&
+		[ "$(command -v lazygit)" = "$TEST_DIR/bin/lazygit" ]
+); then
+	echo "shell config masked a system code or lazygit command" >&2
+	exit 1
+fi
+
 bash setup.sh --help >/dev/null
 if bash setup.sh --unknown-flag >/dev/null 2>&1; then
 	echo "setup.sh accepted an unknown flag" >&2

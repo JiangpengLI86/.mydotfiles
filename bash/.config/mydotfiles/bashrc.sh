@@ -24,8 +24,8 @@ export NVM_DIR="$HOME/.nvm"
 
 [ -f "$HOME/.config/mydotfiles/enable-copilot" ] && export ENABLE_COPILOT=1
 
-alias code="$HOME/.local/opt/vscode-cli/bin/code"
-alias lazygit="$HOME/.local/bin/lazygit"
+[ -x "$HOME/.local/opt/vscode-cli/bin/code" ] && alias code="$HOME/.local/opt/vscode-cli/bin/code"
+[ -x "$HOME/.local/bin/lazygit" ] && alias lazygit="$HOME/.local/bin/lazygit"
 
 yy() {
 	local tmp cwd status
