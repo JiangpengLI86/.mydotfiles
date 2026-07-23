@@ -21,18 +21,22 @@ apt_update_if_possible() {
 	fi
 }
 
-ensure_bashrc_line() {
-	local line="$1"
-	local bashrc_path="${2:-$HOME/.bashrc}"
-	touch "$bashrc_path"
-	if ! grep -qxF "$line" "$bashrc_path"; then
-		echo "$line" >>"$bashrc_path"
-	fi
-}
-
 ensure_local_bin_on_path() {
 	export PATH="$HOME/.local/bin:$PATH"
 	mkdir -p "$HOME/.local/bin"
+}
+
+link_local_bin() {
+	local source_path="$1"
+	local command_name="${2:-${source_path##*/}}"
+	local target_path="$HOME/.local/bin/$command_name"
+
+	if [ ! -x "$source_path" ]; then
+		echo -e "${BOLD}${RED}Cannot expose missing executable: ${source_path}${RESET}" >&2
+		return 1
+	fi
+	ensure_local_bin_on_path
+	[ "$source_path" = "$target_path" ] || ln -sfn "$source_path" "$target_path"
 }
 
 require_commands() {

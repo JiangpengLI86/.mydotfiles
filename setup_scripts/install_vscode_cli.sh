@@ -42,6 +42,7 @@ install_vscode_cli() {
 	cli_os="$(vscode_cli_download_os)" || return 1
 	download_url="https://code.visualstudio.com/sha/download?build=stable&os=${cli_os}"
 	archive_path="$(mktemp "${TMPDIR:-/tmp}/vscode-cli.XXXXXX.tar.gz")"
+	system_code_path="$(command -v code 2>/dev/null || true)"
 
 	echo -e "${BOLD}${YELLOW}Downloading latest VS Code CLI binary from ${download_url}${RESET}"
 	curl -fL "$download_url" -o "$archive_path"
@@ -59,17 +60,10 @@ install_vscode_cli() {
 
 	mkdir -p "$cli_bin_dir"
 	install -m 0755 "$extracted_code_path" "$cli_bin_dir/code"
+	link_local_bin "$cli_bin_dir/code" code
 
-	system_code_path="$(command -v code 2>/dev/null || true)"
-
-	# Ensure this setup shell resolves our managed code binary before any system one.
-	case ":$PATH:" in
-	*:"$cli_bin_dir":*) ;;
-	*) export PATH="$cli_bin_dir:$PATH" ;;
-	esac
-
-	if [ -n "$system_code_path" ] && [ "$system_code_path" != "$cli_bin_dir/code" ]; then
-		echo -e "${BOLD}${YELLOW}Detected system-level code at ${system_code_path}; preferring ${cli_bin_dir}/code.${RESET}"
+	if [ -n "$system_code_path" ] && [ "$system_code_path" != "$HOME/.local/bin/code" ]; then
+		echo -e "${BOLD}${YELLOW}Detected code at ${system_code_path}; preferring ~/.local/bin/code.${RESET}"
 	fi
 
 	installed_version="$("$cli_bin_dir/code" --version 2>/dev/null | head -n1 || true)"

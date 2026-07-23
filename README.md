@@ -34,12 +34,12 @@ Then it:
 2. Installs baseline packages via apt when possible:
    - build-essential, wget, curl, git, python3, python3-venv, make, stow, fontconfig, unzip, tar, bzip2, xz-utils
 3. Verifies essential prerequisites are present (`cc`, `wget`, `curl`, `git`, `python3`, `make`, `stow`, `fc-cache`, `unzip`, `tar`, `bzip2`, `xz`, Python `venv` module), and exits early with a clear error if they are missing.
-4. Runs `setup_scripts/update_rust_stable.sh` and exports `RUSTUP_TOOLCHAIN=stable` for this setup run.
-5. Detects existing **conda** and upgrades it in `base`; if missing, installs **Miniconda** to `~/miniconda3`, then runs `conda init bash`.
+4. Runs `setup_scripts/update_rust_stable.sh`, exports `RUSTUP_TOOLCHAIN=stable` for this setup run, and links the Rust commands into `~/.local/bin`.
+5. Detects existing **conda** and upgrades it in `base`; if missing, installs the official **Miniconda** build to `~/miniconda3`, then links `conda` into `~/.local/bin`.
 6. Installs **CaskaydiaMono Nerd Font** into `~/.local/share/fonts`.
 7. Installs **yazi**:
    - prefers latest official **musl** prebuilt release into `~/.local/bin` for better libc compatibility
-   - falls back to source build from `~/.local/src/yazi` when needed
+   - falls back to a source build from `~/.local/src/yazi` when needed, using package-manager build dependencies
    - restores the locked Catppuccin Mocha flavor with `ya pkg install`
    - provides a `yy()` shell wrapper through the stowed shell configuration
 8. Installs **lazygit** from the latest official GitHub release tarball:
@@ -51,22 +51,24 @@ Then it:
    - auto-selects `neovim/neovim-releases` binaries on older glibc hosts for compatibility
 10. Ensures Node/npm is available for Mason:
    - installs `nvm` + latest LTS Node when needed
-   - initializes `NVM_DIR`, `nvm.sh`, and `bash_completion` from the stowed shell configuration
+   - links Node commands into `~/.local/bin`
+   - initializes `NVM_DIR`, `nvm.sh`, and `bash_completion` only from the stowed shell configuration
 11. Ensures `tree-sitter` CLI is available:
    - runs `cargo install tree-sitter-cli --locked --no-default-features`
+   - links `tree-sitter` into `~/.local/bin`
 12. Installs **tmux**:
-   - apt when root/sudo is available
-   - otherwise builds from source into `~/.local` (with local ncurses/libevent build if needed)
+   - prefers the latest prebuilt static Linux release from `tmux/tmux-builds`
+   - falls back to a source build into `~/.local`, with build dependencies installed through apt
 13. Installs latest **VS Code CLI** from Microsoft download endpoint:
    - downloads `https://code.visualstudio.com/sha/download?build=stable&os=...`
    - installs/overwrites `~/.local/opt/vscode-cli/bin/code`
-   - exposes its alias and PATH through the stowed shell configuration
-14. Adds one idempotent conditional source line to `~/.bashrc` for `~/.config/mydotfiles/bashrc.sh`, which provides:
+   - links `~/.local/bin/code` to the installed binary
+14. Removes leftover conda, NVM, rustup, PATH, and previous mydotfiles startup fragments, then writes one structured managed block to `~/.bashrc`. That block conditionally sources `~/.config/mydotfiles/bashrc.sh`, which provides:
    - custom `PS1`
    - `set -o vi`
    - exports `GPG_TTY` when a TTY is available
    - starts `ssh-agent` if missing
-   - local binary paths, NVM initialization, aliases, and `yy()`
+   - local binary paths, conda/NVM initialization, aliases, and `yy()`
 15. Runs GNU Stow for:
    - `bash`, `tmux`, `nvim`, `yazi`, `inputrc`, `condarc`
    - `codex` → `~/.codex/` (config, skills)
@@ -100,13 +102,14 @@ Notes:
   - `yazi --version`
   - `lazygit --version`
   - `tmux -V` and isolated tmux server lifecycle
-  - `~/.local/opt/vscode-cli/bin/code --version`
-  - one `~/.bashrc` source line for the stowed shell configuration
+  - managed commands exposed through `~/.local/bin`
+  - `~/.local/bin/code --version`
+  - one structured `~/.bashrc` block for the stowed shell configuration
   - `npm`, `yy()`, and the VS Code/lazygit aliases from a fresh interactive shell
   - Neovim headless checks for the Noice module, `:messages`, and `:Mason`
 - Neovim smoke checks run `Lazy! sync` first because first-run LazyVim plugin installation can take time.
-- Case 4 runs `testing/docker/unit_test_functions.sh`, covering `require_commands`, the idempotent shell-config source line, and `setup.sh` argument parsing.
-- Case 5 runs `setup.sh` twice before smoke tests to verify idempotency (no duplicate bashrc lines, no stow conflicts, no permission errors on re-run).
+- Case 4 runs `testing/docker/unit_test_functions.sh`, covering `require_commands`, local command links, legacy shell-config cleanup, idempotent managed shell blocks, and `setup.sh` argument parsing.
+- Case 5 runs `setup.sh` twice before smoke tests to verify idempotency (no duplicate bashrc blocks, no stow conflicts, no permission errors on re-run).
 
 ## Setup options
 

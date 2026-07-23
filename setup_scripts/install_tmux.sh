@@ -1,90 +1,64 @@
 source ./setup_scripts/install_basic_packages.sh # For helpers and install_packages functions
 
-has_yacc_or_bison() {
-	command -v yacc >/dev/null 2>&1 || command -v bison >/dev/null 2>&1
+tmux_download_arch() {
+	case "$(uname -m)" in
+	x86_64 | amd64) echo "x86_64" ;;
+	aarch64 | arm64) echo "arm64" ;;
+	*)
+		echo -e "${BOLD}${YELLOW}No tmux prebuilt configured for architecture $(uname -m).${RESET}" >&2
+		return 1
+		;;
+	esac
 }
 
-tmux_build_local_ncurses() {
-	local prefix="$HOME/.local"
-	local src_root="$HOME/.local/src"
-	local build_root="$HOME/.local/build"
-	local version="6.5"
-	local tarball="$build_root/ncurses-${version}.tar.gz"
-	local source_dir="$src_root/ncurses-${version}"
-	local url="https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${version}.tar.gz"
-
-	if PKG_CONFIG_PATH="$prefix/lib/pkgconfig:${PKG_CONFIG_PATH:-}" pkg-config --exists ncursesw; then
-		return 0
-	fi
-
-	echo -e "${BOLD}${YELLOW}Building ncurses locally for tmux...${RESET}"
-	mkdir -p "$src_root" "$build_root"
-	curl -fL "$url" -o "$tarball"
-	rm -rf "$source_dir"
-	tar -xzf "$tarball" -C "$src_root"
-
-	(
-		cd "$source_dir"
-		./configure --prefix="$prefix" --with-shared --with-termlib --enable-pc-files --with-pkg-config-libdir="$prefix/lib/pkgconfig"
-		make -j"$(nproc)"
-		make install
-	)
-}
-
-tmux_build_local_libevent() {
-	local prefix="$HOME/.local"
-	local src_root="$HOME/.local/src"
-	local build_root="$HOME/.local/build"
-	local version="2.1.12-stable"
-	local tarball="$build_root/libevent-${version}.tar.gz"
-	local source_dir="$src_root/libevent-${version}"
-	local url="https://github.com/libevent/libevent/releases/download/release-${version}/libevent-${version}.tar.gz"
-
-	if PKG_CONFIG_PATH="$prefix/lib/pkgconfig:${PKG_CONFIG_PATH:-}" pkg-config --exists libevent; then
-		return 0
-	fi
-
-	echo -e "${BOLD}${YELLOW}Building libevent locally for tmux...${RESET}"
-	mkdir -p "$src_root" "$build_root"
-	curl -fL "$url" -o "$tarball"
-	rm -rf "$source_dir"
-	tar -xzf "$tarball" -C "$src_root"
-
-	(
-		cd "$source_dir"
-		./configure --prefix="$prefix" --disable-openssl
-		make -j"$(nproc)"
-		make install
-	)
-}
-
-install_tmux_from_source() {
-	local prefix="$HOME/.local"
-	local src_root="$HOME/.local/src"
-	local build_root="$HOME/.local/build"
+install_tmux_prebuilt() (
+	local arch
 	local asset_url
-	local tmux_tarball
-	local tmux_extract_root
-	local tmux_source_dir
+	local archive
+	local extract_dir
+	local extracted_tmux
 
-	require_commands curl tar make cc pkg-config || {
-		echo -e "${BOLD}${RED}Missing essential build tools for tmux source build.${RESET}"
-		echo -e "${BOLD}${RED}Install build-essential, bison, and pkg-config (or rerun with sudo/root).${RESET}"
-		return 1
-	}
+	arch="$(tmux_download_arch)" || return 1
+	require_commands curl tar install mktemp || return 1
+	asset_url="$(github_latest_asset_url "tmux/tmux-builds" "/tmux-.*-linux-${arch}\\.tar\\.gz$" || true)"
+	[ -n "$asset_url" ] || return 1
 
-	if ! has_yacc_or_bison; then
-		echo -e "${BOLD}${RED}tmux source build requires yacc (or bison), but neither was found.${RESET}"
-		echo -e "${BOLD}${RED}Install bison (or a yacc implementation), then rerun setup.${RESET}"
+	archive="$(mktemp /tmp/tmux-prebuilt.XXXXXX.tar.gz)"
+	extract_dir="$(mktemp -d /tmp/tmux-prebuilt.XXXXXX)"
+	trap 'rm -rf "$archive" "$extract_dir"' EXIT
+	echo -e "${BOLD}${YELLOW}Installing tmux from prebuilt static release...${RESET}"
+	curl -fL "$asset_url" -o "$archive" || return 1
+	tar -xzf "$archive" -C "$extract_dir" || return 1
+	extracted_tmux="$(find "$extract_dir" -type f -name tmux -perm /111 | head -n1)"
+	if [ -z "$extracted_tmux" ]; then
+		echo -e "${BOLD}${RED}Downloaded tmux archive did not contain an executable.${RESET}" >&2
 		return 1
 	fi
-
-	mkdir -p "$prefix" "$src_root" "$build_root"
 	ensure_local_bin_on_path
+	install -m 0755 "$extracted_tmux" "$HOME/.local/bin/tmux"
+	"$HOME/.local/bin/tmux" -V >/dev/null
+)
 
-	tmux_build_local_ncurses
-	tmux_build_local_libevent
+install_tmux_source_dependencies() {
+	if ! can_use_apt; then
+		echo -e "${BOLD}${RED}Tmux source fallback requires package-manager build dependencies.${RESET}" >&2
+		return 1
+	fi
+	install_packages build-essential bison pkg-config libevent-dev libncurses-dev
+	require_commands curl tar make cc bison pkg-config
+	if ! pkg-config --exists libevent ncursesw; then
+		echo -e "${BOLD}${RED}Tmux source dependencies are unavailable after package installation.${RESET}" >&2
+		return 1
+	fi
+}
 
+install_tmux_from_source() (
+	local asset_url
+	local archive
+	local extract_dir
+	local source_dir
+
+	install_tmux_source_dependencies || return 1
 	asset_url="$(github_latest_asset_url "tmux/tmux" "/tmux-[0-9A-Za-z._-]+\\.tar\\.gz$")"
 	if [ -z "$asset_url" ]; then
 		echo -e "${BOLD}${RED}Failed to resolve latest tmux source tarball URL from GitHub releases.${RESET}"
@@ -92,51 +66,43 @@ install_tmux_from_source() {
 	fi
 
 	echo -e "${BOLD}${YELLOW}Building tmux from source...${RESET}"
-	tmux_tarball="$(mktemp /tmp/tmux.XXXXXX.tar.gz)"
-	tmux_extract_root="$(mktemp -d /tmp/tmux-src.XXXXXX)"
-	curl -fL "$asset_url" -o "$tmux_tarball"
-	tar -xzf "$tmux_tarball" -C "$tmux_extract_root"
-	rm -f "$tmux_tarball"
-
-	tmux_source_dir="$(find "$tmux_extract_root" -mindepth 1 -maxdepth 1 -type d | head -n1)"
-	if [ -z "$tmux_source_dir" ]; then
-		rm -rf "$tmux_extract_root"
+	archive="$(mktemp /tmp/tmux-source.XXXXXX.tar.gz)"
+	extract_dir="$(mktemp -d /tmp/tmux-source.XXXXXX)"
+	trap 'rm -rf "$archive" "$extract_dir"' EXIT
+	curl -fL "$asset_url" -o "$archive"
+	tar -xzf "$archive" -C "$extract_dir"
+	source_dir="$(find "$extract_dir" -mindepth 1 -maxdepth 1 -type d | head -n1)"
+	if [ -z "$source_dir" ]; then
 		echo -e "${BOLD}${RED}Failed to locate extracted tmux source directory.${RESET}"
 		return 1
 	fi
 
 	(
-		cd "$tmux_source_dir"
-		PKG_CONFIG_PATH="$prefix/lib/pkgconfig:${PKG_CONFIG_PATH:-}" \
-			CPPFLAGS="-I$prefix/include" \
-			LDFLAGS="-Wl,-rpath,$prefix/lib -L$prefix/lib" \
-			./configure --prefix="$prefix"
+		cd "$source_dir"
+		./configure --prefix="$HOME/.local"
 		make -j"$(nproc)"
 		make install
 	)
 
-	rm -rf "$tmux_extract_root"
-
-	if ! command -v tmux >/dev/null 2>&1; then
-		echo -e "${BOLD}${RED}tmux installation completed but binary is not on PATH.${RESET}"
-		return 1
-	fi
-
-	return 0
-}
+	"$HOME/.local/bin/tmux" -V >/dev/null
+)
 
 # Install the tmux terminal multiplexer
 install_tmux() {
-	echo -e "${BOLD}${YELLOW}Installing tmux...${RESET}"
+	local tmux_path
 
-	if command -v tmux >/dev/null 2>&1; then
-		echo -e "${BOLD}${YELLOW}tmux already installed at $(command -v tmux).${RESET}"
+	echo -e "${BOLD}${YELLOW}Installing tmux...${RESET}"
+	ensure_local_bin_on_path
+
+	if command -v tmux >/dev/null 2>&1 && tmux -V >/dev/null 2>&1; then
+		tmux_path="$(command -v tmux)"
+		link_local_bin "$tmux_path" tmux
+		echo -e "${BOLD}${YELLOW}tmux already installed at ${tmux_path}.${RESET}"
 		return 0
 	fi
 
-	if can_use_apt; then
-		install_packages tmux
-	else
+	if ! install_tmux_prebuilt; then
+		echo -e "${BOLD}${YELLOW}Falling back to a tmux source build...${RESET}"
 		install_tmux_from_source
 	fi
 

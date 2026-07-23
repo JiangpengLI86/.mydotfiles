@@ -47,19 +47,13 @@ install_miniconda() {
 		conda_bin="$miniconda_home/bin/conda"
 	fi
 
+	link_local_bin "$conda_bin" conda
+
 	echo -e "${BOLD}${YELLOW}Upgrading conda to the latest version in base...${RESET}"
 	if "$conda_bin" update -n base -c defaults conda -y; then
 		echo -e "${BOLD}${GREEN}Conda upgraded successfully.${RESET}"
 	else
 		echo -e "${BOLD}${YELLOW}Conda upgrade failed; continuing setup with existing conda.${RESET}"
-	fi
-
-	touch "$HOME/.bashrc"
-	if grep -qF "# >>> conda initialize >>>" "$HOME/.bashrc"; then
-		echo -e "${BOLD}${YELLOW}Conda is already initialized in .bashrc.${RESET}"
-	else
-		echo -e "${BOLD}${YELLOW}Initializing conda for bash...${RESET}"
-		"$conda_bin" init bash >/dev/null
 	fi
 
 	echo -e "${BOLD}${GREEN}Miniconda is ready.${RESET}"

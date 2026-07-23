@@ -147,22 +147,13 @@ install_yazi_prebuilt() {
 }
 
 ensure_yazi_source_prereqs() {
-	if command -v cargo >/dev/null 2>&1 && command -v rustc >/dev/null 2>&1; then
-		return 0
-	fi
-
-	if can_use_apt; then
-		echo -e "${BOLD}${YELLOW}Rust toolchain missing; installing rustc/cargo via apt...${RESET}"
-		install_packages rustc cargo
-	fi
-
-	if ! command -v cargo >/dev/null 2>&1 || ! command -v rustc >/dev/null 2>&1; then
-		echo -e "${BOLD}${RED}Rust toolchain (cargo/rustc) is required for source-built yazi, and it is not available.${RESET}"
-		echo -e "${BOLD}${RED}Without sudo/root, install Rust first or use a supported prebuilt release.${RESET}"
+	if ! can_use_apt; then
+		echo -e "${BOLD}${RED}Yazi source fallback requires package-manager build dependencies.${RESET}"
 		return 1
 	fi
-
-	return 0
+	echo -e "${BOLD}${YELLOW}Installing yazi source-build dependencies through apt...${RESET}"
+	install_packages build-essential pkg-config rustc cargo
+	require_commands git cargo rustc cc pkg-config
 }
 
 install_yazi_from_source() {

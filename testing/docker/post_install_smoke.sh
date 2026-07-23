@@ -7,9 +7,16 @@ echo "Running post-install smoke checks..."
 # Tests run in a fresh non-login shell.
 export PATH="$HOME/.local/bin:$PATH"
 
-VSCODE_CLI_BIN="$HOME/.local/opt/vscode-cli/bin/code"
+VSCODE_CLI_BIN="$HOME/.local/bin/code"
 SHELL_CONFIG="$HOME/.config/mydotfiles/bashrc.sh"
 SHELL_SOURCE_LINE='source "$HOME/.config/mydotfiles/bashrc.sh"'
+
+for managed_command in cargo cargo-clippy code conda lazygit node npm nvim rustc rustfmt rustup tmux tree-sitter ya yazi; do
+	if [ ! -x "$HOME/.local/bin/$managed_command" ]; then
+		echo "Smoke check failed: expected $managed_command in ~/.local/bin."
+		exit 1
+	fi
+done
 
 if ! command -v yazi >/dev/null 2>&1; then
 	echo "Smoke check failed: yazi is not on PATH."

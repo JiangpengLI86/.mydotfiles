@@ -3,11 +3,17 @@ source ./setup_scripts/install_basic_packages.sh # For shared install helpers
 install_nvm_and_node() {
 	local nvm_version="v0.40.1"
 	local had_nounset=false
+	local nvm_installer
+	local node_command
+	local node_command_path
 	export NVM_DIR="$HOME/.nvm"
 
 	if [ ! -s "$NVM_DIR/nvm.sh" ]; then
 		echo -e "${BOLD}${YELLOW}Installing nvm...${RESET}"
-		curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_version}/install.sh" | bash
+		nvm_installer="$(mktemp)"
+		curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_version}/install.sh" -o "$nvm_installer"
+		PROFILE=/dev/null bash "$nvm_installer"
+		rm -f "$nvm_installer"
 	fi
 
 	if [[ $- == *u* ]]; then
@@ -19,13 +25,24 @@ install_nvm_and_node() {
 	nvm install --lts
 	nvm use --lts
 	nvm alias default 'lts/*' >/dev/null
+	for node_command in node npm npx corepack; do
+		node_command_path="$(command -v "$node_command" 2>/dev/null || true)"
+		[ -z "$node_command_path" ] || link_local_bin "$node_command_path" "$node_command"
+	done
 	if [ "$had_nounset" = true ]; then
 		set -u
 	fi
 }
 
 ensure_npm_for_mason() {
+	local node_command
+	local node_command_path
+
 	if command -v npm >/dev/null 2>&1 && npm --version >/dev/null 2>&1; then
+		for node_command in node npm npx corepack; do
+			node_command_path="$(command -v "$node_command" 2>/dev/null || true)"
+			[ -z "$node_command_path" ] || link_local_bin "$node_command_path" "$node_command"
+		done
 		return
 	fi
 	install_nvm_and_node
@@ -77,9 +94,12 @@ configure_copilot_flag() {
 
 install_neovim() {
 	local use_copilot="$1"
+	local nvim_path
 
 	if command -v nvim >/dev/null 2>&1 && nvim --version >/dev/null 2>&1; then
-		echo -e "${BOLD}${YELLOW}Neovim already installed at $(command -v nvim).${RESET}"
+		nvim_path="$(command -v nvim)"
+		link_local_bin "$nvim_path" nvim
+		echo -e "${BOLD}${YELLOW}Neovim already installed at ${nvim_path}.${RESET}"
 	else
 		install_neovim_prebuilt
 	fi
@@ -90,6 +110,7 @@ install_neovim() {
 	fi
 	ensure_npm_for_mason
 	cargo install tree-sitter-cli --locked --no-default-features
+	link_local_bin "$HOME/.cargo/bin/tree-sitter" tree-sitter
 
 	echo -e "${BOLD}${GREEN}Neovim installed successfully.${RESET}"
 }
