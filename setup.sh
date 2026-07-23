@@ -101,7 +101,7 @@ if [ "${SETUP_TEST_EXIT_AFTER_PREREQS:-0}" = "1" ]; then
 fi
 
 # Ensure Rust stable toolchain is installed/updated for all source builds ================================
-run_step "Rust toolchain" bash ./setup_scripts/update_rust_stable.sh --yes
+run_step "Rust toolchain" bash ./setup_scripts/update_rust_stable.sh
 # Source cargo env regardless — if rust was already installed it works;
 # if the step failed, subsequent steps needing cargo will fail on their own.
 if [ -s "$HOME/.cargo/env" ]; then

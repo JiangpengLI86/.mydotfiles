@@ -34,7 +34,7 @@ Then it:
 2. Installs baseline packages via apt when possible:
    - build-essential, wget, curl, git, python3, python3-venv, make, stow, fontconfig, unzip, tar, bzip2, xz-utils
 3. Verifies essential prerequisites are present (`cc`, `wget`, `curl`, `git`, `python3`, `make`, `stow`, `fc-cache`, `unzip`, `tar`, `bzip2`, `xz`, Python `venv` module), and exits early with a clear error if they are missing.
-4. Runs `setup_scripts/update_rust_stable.sh --yes` and exports `RUSTUP_TOOLCHAIN=stable` for this setup run.
+4. Runs `setup_scripts/update_rust_stable.sh` and exports `RUSTUP_TOOLCHAIN=stable` for this setup run.
 5. Detects existing **conda** and upgrades it in `base`; if missing, installs **Miniconda** to `~/miniconda3`, then runs `conda init bash`.
 6. Installs **CaskaydiaMono Nerd Font** into `~/.local/share/fonts`.
 7. Installs **yazi**:
@@ -144,25 +144,9 @@ Highlights:
 
 ```bash
 bash setup_scripts/update_rust_stable.sh
-bash setup_scripts/update_rust_stable.sh --yes
-bash setup_scripts/update_rust_stable.sh --check
 ```
 
-Updates `rustup`, `stable`, and stable components (`rustfmt`, `clippy`) without changing non-stable defaults.
-
-### Uninstall source-built artifacts managed by this repo
-
-```bash
-bash setup_scripts/uninstall_source_build_tools.sh
-bash setup_scripts/uninstall_source_build_tools.sh --yes
-bash setup_scripts/uninstall_source_build_tools.sh --check
-```
-
-Removes managed source-built installs for:
-- `/opt/yazi`
-- `~/.cargo/bin/tree-sitter`
-- `/usr/local/bin/tree-sitter` symlink (only when it points to the cargo binary)
-- yazi PATH/wrapper entries in `~/.bashrc`
+Installs rustup when absent, updates stable, adds `rustfmt` and `clippy`, then runs `rustup check`.
 
 ## Troubleshooting
 
