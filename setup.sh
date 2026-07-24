@@ -15,6 +15,7 @@ PASSED_STEPS=()
 source ./setup_scripts/ensure_sudo.sh            # For ensure_sudo() function
 source ./setup_scripts/help_messages.sh          # For usage() function
 source ./setup_scripts/install_basic_packages.sh # For install_packages() function
+source ./setup_scripts/install_uv.sh             # For install_uv() function
 source ./setup_scripts/install_nerdfonts.sh      # For install_nerd_fonts() function
 source ./setup_scripts/install_yazi.sh           # For install_yazi() function
 source ./setup_scripts/install_lazygit.sh        # For install_lazygit() function
@@ -114,6 +115,7 @@ fi
 export RUSTUP_TOOLCHAIN=stable
 
 # Independent installations ================================
+run_step "uv"            install_uv
 run_step "Miniconda"     install_miniconda
 run_step "Nerd Fonts"    install_nerd_fonts
 run_step "Yazi"          install_yazi

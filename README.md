@@ -6,6 +6,7 @@ Personal Ubuntu/WSL dotfiles with an automated bootstrap script for:
 - tmux
 - yazi
 - lazygit
+- uv
 
 ## Quick start
 
@@ -35,41 +36,42 @@ Then it:
    - build-essential, wget, curl, git, python3, python3-venv, make, stow, fontconfig, unzip, tar, bzip2, xz-utils
 3. Verifies essential prerequisites are present (`cc`, `wget`, `curl`, `git`, `python3`, `make`, `stow`, `fc-cache`, `unzip`, `tar`, `bzip2`, `xz`, Python `venv` module), and exits early with a clear error if they are missing.
 4. Runs `setup_scripts/update_rust_stable.sh`, exports `RUSTUP_TOOLCHAIN=stable` for this setup run, and links the Rust commands into `~/.local/bin`.
-5. Detects existing **conda** and upgrades it in `base`; if missing, installs the official **Miniconda** build to `~/miniconda3`, then links `conda` into `~/.local/bin`.
-6. Installs **CaskaydiaMono Nerd Font** into `~/.local/share/fonts`.
-7. Installs **yazi**:
+5. Installs **uv** and **uvx** into `~/.local/bin` with the official standalone installer.
+6. Detects existing **conda** and upgrades it in `base`; if missing, installs the official **Miniconda** build to `~/miniconda3`, then links `conda` into `~/.local/bin`.
+7. Installs **CaskaydiaMono Nerd Font** into `~/.local/share/fonts`.
+8. Installs **yazi**:
    - prefers latest official **musl** prebuilt release into `~/.local/bin` for better libc compatibility
    - falls back to a source build from `~/.local/src/yazi` when needed, using package-manager build dependencies
    - restores the locked Catppuccin Mocha flavor with `ya pkg install`
    - provides a `yy()` shell wrapper through the stowed shell configuration
-8. Installs **lazygit** from the latest official GitHub release tarball:
+9. Installs **lazygit** from the latest official GitHub release tarball:
    - downloads from `https://github.com/jesseduffield/lazygit/releases/latest/download/...`
    - installs/overwrites `~/.local/bin/lazygit`
    - exposes `alias lazygit="$HOME/.local/bin/lazygit"` through the stowed shell configuration
-9. Installs **Neovim**:
+10. Installs **Neovim**:
    - installs the official Linux prebuilt into `~/.local/opt/nvim` + `~/.local/bin/nvim`
    - auto-selects `neovim/neovim-releases` binaries on older glibc hosts for compatibility
-10. Ensures Node/npm is available for Mason:
+11. Ensures Node/npm is available for Mason:
    - installs `nvm` + latest LTS Node when needed
    - links Node commands into `~/.local/bin`
    - initializes `NVM_DIR`, `nvm.sh`, and `bash_completion` only from the stowed shell configuration
-11. Ensures `tree-sitter` CLI is available:
+12. Ensures `tree-sitter` CLI is available:
    - runs `cargo install tree-sitter-cli --locked --no-default-features`
    - links `tree-sitter` into `~/.local/bin`
-12. Installs **tmux**:
+13. Installs **tmux**:
    - prefers the latest prebuilt static Linux release from `tmux/tmux-builds`
    - falls back to a source build into `~/.local`, with build dependencies installed through apt
-13. Installs latest **VS Code CLI** from Microsoft download endpoint:
+14. Installs latest **VS Code CLI** from Microsoft download endpoint:
    - downloads `https://code.visualstudio.com/sha/download?build=stable&os=...`
    - installs/overwrites `~/.local/opt/vscode-cli/bin/code`
    - links `~/.local/bin/code` to the installed binary
-14. Removes leftover conda, NVM, rustup, PATH, and previous mydotfiles startup fragments, then writes one structured managed block to `~/.bashrc`. That block conditionally sources `~/.config/mydotfiles/bashrc.sh`, which provides:
+15. Removes leftover conda, NVM, rustup, PATH, and previous mydotfiles startup fragments, then writes one structured managed block to `~/.bashrc`. That block conditionally sources `~/.config/mydotfiles/bashrc.sh`, which provides:
    - custom `PS1`
    - `set -o vi`
    - exports `GPG_TTY` when a TTY is available
    - starts `ssh-agent` if missing
    - local binary paths, conda/NVM initialization, aliases, and `yy()`
-15. Runs GNU Stow for:
+16. Runs GNU Stow for:
    - `bash`, `tmux`, `nvim`, `yazi`, `inputrc`, `condarc`
    - `codex` → `~/.codex/` (config, skills)
    - `claude` → `~/.claude/` (settings, `CLAUDE.md` symlinked to shared `AGENTS.md`)

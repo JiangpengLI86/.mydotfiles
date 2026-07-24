@@ -11,7 +11,7 @@ VSCODE_CLI_BIN="$HOME/.local/bin/code"
 SHELL_CONFIG="$HOME/.config/mydotfiles/bashrc.sh"
 SHELL_SOURCE_LINE='source "$HOME/.config/mydotfiles/bashrc.sh"'
 
-for managed_command in cargo cargo-clippy code conda lazygit node npm nvim rustc rustfmt rustup tmux tree-sitter ya yazi; do
+for managed_command in cargo cargo-clippy code conda lazygit node npm nvim rustc rustfmt rustup tmux tree-sitter uv uvx ya yazi; do
 	if [ ! -x "$HOME/.local/bin/$managed_command" ]; then
 		echo "Smoke check failed: expected $managed_command in ~/.local/bin."
 		exit 1
@@ -40,6 +40,8 @@ if ! command -v lazygit >/dev/null 2>&1; then
 	exit 1
 fi
 lazygit --version | head -n1
+uv --version
+uvx --version
 
 # Exercise a real tmux server lifecycle in isolation from host sockets.
 TMUX_SOCKET="smoke_$$"
