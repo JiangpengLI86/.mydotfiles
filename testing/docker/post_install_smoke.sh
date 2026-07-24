@@ -41,6 +41,7 @@ if ! command -v lazygit >/dev/null 2>&1; then
 fi
 lazygit --version | head -n1
 uv --version
+uvx --version
 
 # Exercise a real tmux server lifecycle in isolation from host sockets.
 TMUX_SOCKET="smoke_$$"
