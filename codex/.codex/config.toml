@@ -1,12 +1,17 @@
-model = "gpt-5.5"
-model_reasoning_effort = "medium"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
 personality = "pragmatic"
 plan_mode_reasoning_effort = "xhigh"
 service_tier = "default"
+approvals_reviewer = "auto_review"
 
 [mcp_servers.github]
 url = "https://api.githubcopilot.com/mcp/"
 bearer_token_env_var = "GITHUB_PAT_TOKEN"
+
+[mcp_servers.serena]
+command = "serena"
+args = ["start-mcp-server", "--context=codex", "--project-from-cwd"]
 
 [plugins."github@openai-curated"]
 enabled = true
@@ -14,13 +19,18 @@ enabled = true
 [plugins."superpowers@openai-curated"]
 enabled = true
 
+[plugins."ponytail@ponytail"]
+enabled = true
+
 [tui]
 status_line = ["model-with-reasoning", "current-dir", "run-state", "context-remaining", "five-hour-limit"]
 status_line_use_colors = true
 vim_mode_default = true
+session_picker_view = "comfortable"
 
 [tui.model_availability_nux]
 "gpt-5.5" = 4
+"gpt-5.6-sol" = 4
 
 [features]
 terminal_resize_reflow = true
