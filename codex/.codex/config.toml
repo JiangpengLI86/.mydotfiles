@@ -9,17 +9,10 @@ approvals_reviewer = "auto_review"
 url = "https://api.githubcopilot.com/mcp/"
 bearer_token_env_var = "GITHUB_PAT_TOKEN"
 
-[mcp_servers.serena]
-command = "serena"
-args = ["start-mcp-server", "--context=codex", "--project-from-cwd"]
-
 [plugins."github@openai-curated"]
 enabled = true
 
 [plugins."superpowers@openai-curated"]
-enabled = true
-
-[plugins."ponytail@ponytail"]
 enabled = true
 
 [tui]
