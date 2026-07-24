@@ -17,6 +17,17 @@ source ~/.bashrc
 The setup uses `apt` when sudo is available and falls back to prebuilt binaries
 or local source builds where supported.
 
+### Without sudo
+
+Ask an administrator to install these prerequisites before running the setup:
+
+```bash
+build-essential wget curl git python3 python3-venv make stow fontconfig unzip tar bzip2 xz-utils
+```
+
+Without them, the setup reports the missing commands and exits before
+installing the user-local tools.
+
 ## Included
 
 - Bash, tmux, Neovim (LazyVim), Yazi, and input/Conda configuration
